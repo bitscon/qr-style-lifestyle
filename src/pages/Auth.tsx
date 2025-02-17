@@ -19,7 +19,9 @@ export default function Auth() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const { signInWithEmail, signUp, signInWithOAuth } = useAuth();
+  const [verificationCode, setVerificationCode] = useState("");
+  const [isVerifying, setIsVerifying] = useState(false);
+  const { signInWithEmail, signUp, signInWithOAuth, verifyOtp } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -27,6 +29,7 @@ export default function Auth() {
     try {
       if (isSignUp) {
         await signUp(email, password);
+        setIsVerifying(true);
       } else {
         await signInWithEmail(email, password);
         navigate("/dashboard");
@@ -35,6 +38,51 @@ export default function Auth() {
       // Error is handled in AuthContext
     }
   };
+
+  const handleVerification = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await verifyOtp(email, verificationCode);
+      navigate("/dashboard");
+    } catch (error) {
+      // Error is handled in AuthContext
+    }
+  };
+
+  if (isVerifying) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Verify your email</CardTitle>
+            <CardDescription>
+              Please enter the verification code sent to your email
+            </CardDescription>
+          </CardHeader>
+          <form onSubmit={handleVerification}>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="code">Verification Code</Label>
+                <Input
+                  id="code"
+                  type="text"
+                  placeholder="Enter code"
+                  value={verificationCode}
+                  onChange={(e) => setVerificationCode(e.target.value)}
+                  required
+                />
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button type="submit" className="w-full">
+                Verify Email
+              </Button>
+            </CardFooter>
+          </form>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
