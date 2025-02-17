@@ -1,7 +1,8 @@
 
 import { useEffect, useRef, useState } from "react";
-import { Canvas, Text as FabricText, Rect, Circle, ModifiedEvent, TPointerEvent } from "fabric";
+import { Canvas, Text as FabricText, Rect, Circle, ModifiedEvent, TPointerEvent, Image } from "fabric";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { 
   Type, 
   Square, 
@@ -11,7 +12,13 @@ import {
   Underline,
   AlignLeft,
   AlignCenter,
-  AlignRight
+  AlignRight,
+  Link2,
+  Image as ImageIcon,
+  Heading,
+  List,
+  ListOrdered,
+  Palette
 } from "lucide-react";
 import {
   Select,
@@ -20,16 +27,35 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface CanvasEditorProps {
   onCanvasReady: (canvas: Canvas) => void;
 }
+
+const fontFamilies = [
+  'Arial',
+  'Times New Roman',
+  'Helvetica',
+  'Georgia',
+  'Courier New',
+  'Verdana',
+  'Tahoma'
+];
 
 export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [canvas, setCanvas] = useState<Canvas | null>(null);
   const [selectedObject, setSelectedObject] = useState<FabricText | null>(null);
   const [fontSize, setFontSize] = useState("16");
+  const [fontFamily, setFontFamily] = useState("Arial");
+  const [textColor, setTextColor] = useState("#000000");
+  const [backgroundColor, setBackgroundColor] = useState("#ffffff");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -49,6 +75,8 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
       if (selected instanceof FabricText) {
         setSelectedObject(selected);
         setFontSize(selected.fontSize?.toString() || "16");
+        setFontFamily(selected.fontFamily || "Arial");
+        setTextColor(selected.fill?.toString() || "#000000");
       } else {
         setSelectedObject(null);
       }
@@ -66,17 +94,52 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
     };
   }, [onCanvasReady]);
 
-  const addText = (style: 'normal' | 'heading' | 'subheading') => {
+  const addText = (style: 'normal' | 'heading' | 'subheading' | 'list' | 'ordered-list') => {
     if (!canvas) return;
     
-    const fontSize = style === 'heading' ? 32 : style === 'subheading' ? 24 : 16;
-    const text = new FabricText('Click to edit text', {
-      left: 100,
-      top: 100,
-      fontSize,
-      fill: '#000000',
-      fontFamily: 'Arial',
-    });
+    let text;
+    
+    switch (style) {
+      case 'heading':
+        text = new FabricText('Heading', {
+          left: 100,
+          top: 100,
+          fontSize: 32,
+          fontWeight: 'bold',
+          fill: textColor,
+          fontFamily,
+        });
+        break;
+      case 'list':
+        text = new FabricText('• List item\n• List item\n• List item', {
+          left: 100,
+          top: 100,
+          fontSize: 16,
+          fill: textColor,
+          fontFamily,
+          lineHeight: 1.5,
+        });
+        break;
+      case 'ordered-list':
+        text = new FabricText('1. List item\n2. List item\n3. List item', {
+          left: 100,
+          top: 100,
+          fontSize: 16,
+          fill: textColor,
+          fontFamily,
+          lineHeight: 1.5,
+        });
+        break;
+      default:
+        text = new FabricText('Click to edit text', {
+          left: 100,
+          top: 100,
+          fontSize: style === 'subheading' ? 24 : 16,
+          fill: textColor,
+          fontFamily,
+        });
+    }
+    
     canvas.add(text);
     canvas.setActiveObject(text);
     canvas.renderAll();
@@ -88,7 +151,7 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
     const props = {
       left: 100,
       top: 100,
-      fill: '#e9ecef',
+      fill: backgroundColor,
       width: 100,
       height: 100,
       stroke: '#000000',
@@ -102,6 +165,35 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
     canvas.add(shape);
     canvas.setActiveObject(shape);
     canvas.renderAll();
+  };
+
+  const addLink = () => {
+    if (!selectedObject || !(selectedObject instanceof FabricText)) return;
+    
+    const url = prompt('Enter URL:', 'https://');
+    if (url) {
+      selectedObject.set({
+        underline: true,
+        fill: '#0000EE', // Default link color
+      });
+      canvas?.renderAll();
+    }
+  };
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !canvas) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const imgUrl = e.target?.result as string;
+      Image.fromURL(imgUrl, (img) => {
+        img.scaleToWidth(200); // Scale image to reasonable size
+        canvas.add(img);
+        canvas.renderAll();
+      });
+    };
+    reader.readAsDataURL(file);
   };
 
   const formatText = (format: 'bold' | 'italic' | 'underline') => {
@@ -134,13 +226,35 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
     canvas?.renderAll();
   };
 
+  const handleFontFamilyChange = (value: string) => {
+    if (!selectedObject) return;
+    setFontFamily(value);
+    selectedObject.set('fontFamily', value);
+    canvas?.renderAll();
+  };
+
+  const handleColorChange = (color: string, type: 'text' | 'background') => {
+    if (type === 'text') {
+      setTextColor(color);
+      if (selectedObject) {
+        selectedObject.set('fill', color);
+        canvas?.renderAll();
+      }
+    } else {
+      setBackgroundColor(color);
+      if (canvas) {
+        canvas.backgroundColor = color;
+        canvas.renderAll();
+      }
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2 p-2 bg-muted rounded-lg">
         <div className="flex gap-2 items-center border-r pr-2">
           <Button type="button" variant="ghost" size="sm" onClick={() => addText('heading')}>
-            <Type className="h-4 w-4" />
-            H
+            <Heading className="h-4 w-4" />
           </Button>
           <Button type="button" variant="ghost" size="sm" onClick={() => addText('normal')}>
             <Type className="h-4 w-4" />
@@ -153,6 +267,18 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
               {[12, 14, 16, 18, 20, 24, 28, 32, 36, 48].map((size) => (
                 <SelectItem key={size} value={size.toString()}>
                   {size}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={fontFamily} onValueChange={handleFontFamilyChange}>
+            <SelectTrigger className="w-[120px] h-8">
+              <SelectValue placeholder="Font" />
+            </SelectTrigger>
+            <SelectContent>
+              {fontFamilies.map((font) => (
+                <SelectItem key={font} value={font}>
+                  {font}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -217,6 +343,60 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
           >
             <AlignRight className="h-4 w-4" />
           </Button>
+        </div>
+
+        <div className="flex gap-2 items-center border-r pr-2">
+          <Button type="button" variant="ghost" size="sm" onClick={() => addText('list')}>
+            <List className="h-4 w-4" />
+          </Button>
+          <Button type="button" variant="ghost" size="sm" onClick={() => addText('ordered-list')}>
+            <ListOrdered className="h-4 w-4" />
+          </Button>
+          <Button type="button" variant="ghost" size="sm" onClick={addLink}>
+            <Link2 className="h-4 w-4" />
+          </Button>
+          <Button type="button" variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()}>
+            <ImageIcon className="h-4 w-4" />
+          </Button>
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            accept="image/*"
+            onChange={handleImageUpload}
+          />
+        </div>
+
+        <div className="flex gap-2 items-center border-r pr-2">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button type="button" variant="ghost" size="sm">
+                <Palette className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-64 p-2">
+              <div className="space-y-2">
+                <div>
+                  <label className="text-sm font-medium">Text Color</label>
+                  <Input
+                    type="color"
+                    value={textColor}
+                    onChange={(e) => handleColorChange(e.target.value, 'text')}
+                    className="h-8 w-full"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Background Color</label>
+                  <Input
+                    type="color"
+                    value={backgroundColor}
+                    onChange={(e) => handleColorChange(e.target.value, 'background')}
+                    className="h-8 w-full"
+                  />
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
 
         <div className="flex gap-2 items-center">
