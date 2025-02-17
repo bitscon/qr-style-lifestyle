@@ -1,4 +1,3 @@
-
 import {
   createContext,
   useContext,
@@ -64,16 +63,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         email,
         password,
       });
-      if (error) throw error;
+      if (error) {
+        if (error.message.includes("Email not confirmed")) {
+          toast({
+            title: "Email not verified",
+            description: "Please check your email and click the verification link before signing in.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Error signing in",
+            description: error.message,
+            variant: "destructive",
+          });
+        }
+        throw error;
+      }
       toast({
         title: "Signed in successfully",
       });
     } catch (error) {
-      toast({
-        title: "Error signing in",
-        description: error instanceof Error ? error.message : "An error occurred",
-        variant: "destructive",
-      });
       throw error;
     }
   };
