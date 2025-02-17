@@ -63,8 +63,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
-      }, {
-        persistSession // This is now correctly placed in the second argument
+        options: {
+          data: {
+            persistSession
+          }
+        }
       });
       
       if (error) {
@@ -97,9 +100,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         provider,
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
+          data: {
+            persistSession: true
+          }
         }
-      }, {
-        persistSession: true // Now correctly placed in the second argument
       });
       if (error) throw error;
     } catch (error) {
