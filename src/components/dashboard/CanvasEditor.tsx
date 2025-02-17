@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { Canvas, Text as FabricText, Rect, Circle, ModifiedEvent, TPointerEvent, Image } from "fabric";
+import { Canvas, Text as FabricText, Rect, Circle, ModifiedEvent, TPointerEvent, Image, Triangle, Path, Polygon } from "fabric";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
   Type, 
-  Square, 
+  Square,
   Circle as CircleIcon,
   Bold,
   Italic,
@@ -19,7 +19,18 @@ import {
   ListOrdered,
   Palette,
   Undo2,
-  Redo2
+  Redo2,
+  Triangle as TriangleIcon,
+  Pentagon,
+  Hexagon,
+  Octagon,
+  Star,
+  Heart,
+  Diamond,
+  ArrowUp,
+  ArrowDown,
+  ArrowLeft,
+  ArrowRight
 } from "lucide-react";
 import {
   Select,
@@ -33,6 +44,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface CanvasEditorProps {
   onCanvasReady: (canvas: Canvas) => void;
@@ -46,6 +65,23 @@ const fontFamilies = [
   'Courier New',
   'Verdana',
   'Tahoma'
+];
+
+const shapes = [
+  { name: 'Square', icon: Square },
+  { name: 'Rectangle', icon: Square },
+  { name: 'Circle', icon: CircleIcon },
+  { name: 'Triangle', icon: TriangleIcon },
+  { name: 'Pentagon', icon: Pentagon },
+  { name: 'Hexagon', icon: Hexagon },
+  { name: 'Octagon', icon: Octagon },
+  { name: 'Star', icon: Star },
+  { name: 'Heart', icon: Heart },
+  { name: 'Diamond', icon: Diamond },
+  { name: 'Arrow Up', icon: ArrowUp },
+  { name: 'Arrow Down', icon: ArrowDown },
+  { name: 'Arrow Left', icon: ArrowLeft },
+  { name: 'Arrow Right', icon: ArrowRight }
 ];
 
 export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
@@ -189,22 +225,123 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
     saveState(canvas);
   };
 
-  const addShape = (type: 'rectangle' | 'circle') => {
+  const addShape = (shapeName: string) => {
     if (!canvas) return;
     
-    const props = {
+    const baseProps = {
       left: 100,
       top: 100,
       fill: backgroundColor,
-      width: 100,
-      height: 100,
       stroke: '#000000',
       strokeWidth: 1,
     };
 
-    const shape = type === 'rectangle' 
-      ? new Rect(props)
-      : new Circle({ ...props, radius: 50 });
+    let shape;
+    
+    switch (shapeName.toLowerCase()) {
+      case 'square':
+        shape = new Rect({
+          ...baseProps,
+          width: 100,
+          height: 100,
+        });
+        break;
+      case 'rectangle':
+        shape = new Rect({
+          ...baseProps,
+          width: 150,
+          height: 100,
+        });
+        break;
+      case 'circle':
+        shape = new Circle({
+          ...baseProps,
+          radius: 50,
+        });
+        break;
+      case 'triangle':
+        shape = new Triangle({
+          ...baseProps,
+          width: 100,
+          height: 100,
+        });
+        break;
+      case 'pentagon':
+        const pentagonPoints = [
+          { x: 50, y: 0 },
+          { x: 100, y: 40 },
+          { x: 80, y: 100 },
+          { x: 20, y: 100 },
+          { x: 0, y: 40 }
+        ];
+        shape = new Polygon({
+          ...baseProps,
+          points: pentagonPoints,
+        });
+        break;
+      case 'hexagon':
+        const hexagonPoints = [
+          { x: 50, y: 0 },
+          { x: 100, y: 25 },
+          { x: 100, y: 75 },
+          { x: 50, y: 100 },
+          { x: 0, y: 75 },
+          { x: 0, y: 25 }
+        ];
+        shape = new Polygon({
+          ...baseProps,
+          points: hexagonPoints,
+        });
+        break;
+      case 'star':
+        const starPath = 'M50 0L61 35H97L68 57L79 91L50 70L21 91L32 57L3 35H39Z';
+        shape = new Path({
+          ...baseProps,
+          path: starPath,
+        });
+        break;
+      case 'heart':
+        const heartPath = 'M50 90C25 70 0 50 0 25C0 10 10 0 25 0S50 10 50 25C50 10 65 0 75 0S100 10 100 25C100 50 75 70 50 90Z';
+        shape = new Path({
+          ...baseProps,
+          path: heartPath,
+        });
+        break;
+      case 'diamond':
+        const diamondPoints = [
+          { x: 50, y: 0 },
+          { x: 100, y: 50 },
+          { x: 50, y: 100 },
+          { x: 0, y: 50 }
+        ];
+        shape = new Polygon({
+          ...baseProps,
+          points: diamondPoints,
+        });
+        break;
+      // Arrows
+      case 'arrow up':
+      case 'arrow down':
+      case 'arrow left':
+      case 'arrow right':
+        const arrowPath = {
+          'arrow up': 'M50 0L100 50H75V100H25V50H0Z',
+          'arrow down': 'M50 100L100 50H75V0H25V50H0Z',
+          'arrow left': 'M0 50L50 100V75H100V25H50V0Z',
+          'arrow right': 'M100 50L50 100V75H0V25H50V0Z'
+        }[shapeName.toLowerCase()];
+        shape = new Path({
+          ...baseProps,
+          path: arrowPath,
+        });
+        break;
+      default:
+        shape = new Rect({
+          ...baseProps,
+          width: 100,
+          height: 100,
+        });
+    }
 
     canvas.add(shape);
     canvas.setActiveObject(shape);
@@ -474,12 +611,27 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
         </div>
 
         <div className="flex gap-2 items-center">
-          <Button type="button" variant="ghost" size="sm" onClick={() => addShape('rectangle')}>
-            <Square className="h-4 w-4" />
-          </Button>
-          <Button type="button" variant="ghost" size="sm" onClick={() => addShape('circle')}>
-            <CircleIcon className="h-4 w-4" />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm">
+                <Square className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuLabel>Shapes</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {shapes.map((shape) => (
+                <DropdownMenuItem
+                  key={shape.name}
+                  onClick={() => addShape(shape.name)}
+                  className="flex items-center gap-2"
+                >
+                  <shape.icon className="h-4 w-4" />
+                  <span>{shape.name}</span>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
