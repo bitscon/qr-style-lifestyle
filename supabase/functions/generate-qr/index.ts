@@ -1,7 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
-import QRCode from 'https://esm.sh/qrcode@1.5.3'
+import qr from 'https://esm.sh/qr-image@3.2.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -48,25 +48,11 @@ serve(async (req) => {
     
     console.log('Generating QR code for URL:', userPublishedPageUrl)
 
-    // Generate QR code as a data URL
-    const qrCodeDataUrl = await QRCode.toDataURL(userPublishedPageUrl, {
-      type: 'image/png',
-      width: 400,
-      margin: 2,
-      errorCorrectionLevel: 'H',
-      color: {
-        dark: '#000000',
-        light: '#ffffff',
-      },
-    })
-
-    console.log('QR code generated successfully')
-
-    // Convert data URL to buffer
-    const base64Data = qrCodeDataUrl.split(',')[1]
-    const qrCodeBuffer = Buffer.from(base64Data, 'base64')
+    // Generate QR code as PNG buffer
+    const qrCodeBuffer = qr.imageSync(userPublishedPageUrl, { type: 'png' })
     const fileName = `qr-codes/user-${profile.id}.png`
 
+    console.log('QR code generated successfully')
     console.log('Uploading QR code to storage')
 
     // Upload to storage
