@@ -3,9 +3,6 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -17,20 +14,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Canvas } from "fabric";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
-import { CanvasEditor } from "./CanvasEditor";
+import { PageHeaderForm } from "./PageHeaderForm";
+import { PageEditorTabs } from "./PageEditorTabs";
 import { QRCodeSection } from "./QRCodeSection";
 import { PageContent, Page } from "./types";
 import { Json } from "@/integrations/supabase/types";
@@ -58,9 +43,7 @@ export function PageEditor() {
 
       if (error) throw error;
       
-      // Cast the raw data to our Page type
       const pageData = data as unknown as Page;
-      // Set initial state from the page data
       setTitle(pageData.title);
       setIsPublished(pageData.is_published);
       if (pageData.content?.template) {
@@ -78,7 +61,6 @@ export function PageEditor() {
       content: PageContent;
       is_published: boolean;
     }) => {
-      // Convert PageContent to Json type for Supabase
       const supabaseData = {
         title: data.title,
         content: data.content as unknown as Json,
@@ -143,60 +125,25 @@ export function PageEditor() {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div className="space-y-2">
-            <Label htmlFor="title">Page Title</Label>
-            <Input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Enter page title"
-              className="max-w-md"
-            />
-          </div>
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="published"
-              checked={isPublished}
-              onCheckedChange={setIsPublished}
-            />
-            <Label htmlFor="published">Published</Label>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <Label>Template</Label>
-          <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
-            <SelectTrigger className="max-w-md">
-              <SelectValue placeholder="Select a template" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="blank">Blank Page</SelectItem>
-              <SelectItem value="business">Business Card</SelectItem>
-              <SelectItem value="portfolio">Portfolio</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <PageHeaderForm
+          title={title}
+          setTitle={setTitle}
+          isPublished={isPublished}
+          setIsPublished={setIsPublished}
+          selectedTemplate={selectedTemplate}
+          setSelectedTemplate={setSelectedTemplate}
+        />
 
         <Card>
           <CardHeader>
             <CardTitle>Page Editor</CardTitle>
           </CardHeader>
           <CardContent>
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList>
-                <TabsTrigger value="editor">Visual Editor</TabsTrigger>
-                <TabsTrigger value="preview">Preview</TabsTrigger>
-              </TabsList>
-              <TabsContent value="editor">
-                <CanvasEditor onCanvasReady={setCanvas} />
-              </TabsContent>
-              <TabsContent value="preview">
-                <div className="border rounded-lg p-4 min-h-[600px]">
-                  Preview content will be shown here
-                </div>
-              </TabsContent>
-            </Tabs>
+            <PageEditorTabs
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              onCanvasReady={setCanvas}
+            />
           </CardContent>
           <CardFooter className="flex justify-end space-x-4">
             <Button
