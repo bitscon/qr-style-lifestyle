@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Routes, Route, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -52,7 +52,7 @@ const Dashboard = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("*, pages!pages(is_published)")
+        .select("*")
         .eq("id", user?.id)
         .single();
 
@@ -69,7 +69,7 @@ const Dashboard = () => {
         .select("*")
         .eq("user_id", user?.id)
         .eq("is_published", true)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data;
