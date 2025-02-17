@@ -17,7 +17,6 @@ interface AuthContextType {
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signInWithOAuth: (provider: Provider) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
-  verifyOtp: (email: string, token: string) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   loading: boolean;
 }
@@ -29,7 +28,6 @@ const AuthContext = createContext<AuthContextType>({
   signInWithEmail: async () => {},
   signInWithOAuth: async () => {},
   signUp: async () => {},
-  verifyOtp: async () => {},
   resetPassword: async () => {},
   loading: true,
 });
@@ -107,34 +105,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
       if (error) throw error;
       toast({
-        title: "Verification code sent",
-        description: "Please check your email for the verification code.",
+        title: "Sign up successful",
+        description: "Please check your email for the confirmation link.",
       });
     } catch (error) {
       toast({
         title: "Error signing up",
-        description: error instanceof Error ? error.message : "An error occurred",
-        variant: "destructive",
-      });
-      throw error;
-    }
-  };
-
-  const verifyOtp = async (email: string, token: string) => {
-    try {
-      const { error } = await supabase.auth.verifyOtp({
-        email,
-        token,
-        type: 'signup',
-      });
-      if (error) throw error;
-      toast({
-        title: "Email verified successfully",
-        description: "You can now sign in to your account.",
-      });
-    } catch (error) {
-      toast({
-        title: "Error verifying email",
         description: error instanceof Error ? error.message : "An error occurred",
         variant: "destructive",
       });
@@ -184,7 +160,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         signInWithEmail,
         signInWithOAuth,
         signUp,
-        verifyOtp,
         resetPassword,
         loading,
       }}
