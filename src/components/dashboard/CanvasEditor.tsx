@@ -275,51 +275,54 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
         });
         break;
       case 'pentagon':
-        shape = new Polygon({
+        const pentagonCoords = [
+          { x: 50, y: 0 },
+          { x: 100, y: 40 },
+          { x: 80, y: 100 },
+          { x: 20, y: 100 },
+          { x: 0, y: 40 }
+        ];
+        shape = new Path({
           ...baseProps,
-          points: [
-            { x: 50, y: 0 },
-            { x: 100, y: 40 },
-            { x: 80, y: 100 },
-            { x: 20, y: 100 },
-            { x: 0, y: 40 }
-          ].map(point => ({ x: point.x, y: point.y })),
+          path: `M ${pentagonCoords.map(p => `${p.x} ${p.y}`).join(' L ')} Z`,
         });
         break;
       case 'hexagon':
-        shape = new Polygon({
+        const hexagonCoords = [
+          { x: 50, y: 0 },
+          { x: 100, y: 25 },
+          { x: 100, y: 75 },
+          { x: 50, y: 100 },
+          { x: 0, y: 75 },
+          { x: 0, y: 25 }
+        ];
+        shape = new Path({
           ...baseProps,
-          points: [
-            { x: 50, y: 0 },
-            { x: 100, y: 25 },
-            { x: 100, y: 75 },
-            { x: 50, y: 100 },
-            { x: 0, y: 75 },
-            { x: 0, y: 25 }
-          ].map(point => ({ x: point.x, y: point.y })),
+          path: `M ${hexagonCoords.map(p => `${p.x} ${p.y}`).join(' L ')} Z`,
         });
         break;
       case 'star':
         shape = new Path({
           ...baseProps,
-          data: 'M50 0L61 35H97L68 57L79 91L50 70L21 91L32 57L3 35H39Z',
+          path: 'M50 0L61 35H97L68 57L79 91L50 70L21 91L32 57L3 35H39Z',
         });
         break;
       case 'heart':
         shape = new Path({
           ...baseProps,
-          data: 'M50 90C25 70 0 50 0 25C0 10 10 0 25 0S50 10 50 25C50 10 65 0 75 0S100 10 100 25C100 50 75 70 50 90Z',
+          path: 'M50 90C25 70 0 50 0 25C0 10 10 0 25 0S50 10 50 25C50 10 65 0 75 0S100 10 100 25C100 50 75 70 50 90Z',
         });
         break;
       case 'diamond':
-        shape = new Polygon({
+        const diamondCoords = [
+          { x: 50, y: 0 },
+          { x: 100, y: 50 },
+          { x: 50, y: 100 },
+          { x: 0, y: 50 }
+        ];
+        shape = new Path({
           ...baseProps,
-          points: [
-            { x: 50, y: 0 },
-            { x: 100, y: 50 },
-            { x: 50, y: 100 },
-            { x: 0, y: 50 }
-          ].map(point => ({ x: point.x, y: point.y })),
+          path: `M ${diamondCoords.map(p => `${p.x} ${p.y}`).join(' L ')} Z`,
         });
         break;
       case 'arrow up':
@@ -334,7 +337,7 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
         };
         shape = new Path({
           ...baseProps,
-          data: arrowPaths[shapeName.toLowerCase()],
+          path: arrowPaths[shapeName.toLowerCase()],
         });
         break;
       default:
