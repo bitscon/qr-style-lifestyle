@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import { Canvas, Text as FabricText, Rect, Circle, ModifiedEvent, TPointerEvent, Image } from "fabric";
 import { Button } from "@/components/ui/button";
@@ -187,8 +186,11 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
     const reader = new FileReader();
     reader.onload = (e) => {
       const imgUrl = e.target?.result as string;
-      Image.fromURL(imgUrl, (img) => {
-        img.scaleToWidth(200); // Scale image to reasonable size
+      fabric.Image.fromURL(imgUrl, {
+        crossOrigin: 'anonymous',
+        scaleX: 0.5,
+        scaleY: 0.5
+      }).then((img) => {
         canvas.add(img);
         canvas.renderAll();
       });
