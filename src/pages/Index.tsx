@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { MoonIcon, SunIcon } from "lucide-react";
@@ -9,7 +8,7 @@ import { useToast } from "@/components/ui/use-toast";
 const Index = () => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const navigate = useNavigate();
-  const { user, signInWithEmail } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
 
   const toggleTheme = () => {
@@ -21,11 +20,7 @@ const Index = () => {
     if (user) {
       navigate("/dashboard");
     } else {
-      // For now, we'll show a toast until auth is fully implemented
-      toast({
-        title: "Coming Soon",
-        description: "Authentication will be implemented shortly.",
-      });
+      navigate("/auth");
     }
   };
 
@@ -52,8 +47,12 @@ const Index = () => {
                   <MoonIcon className="h-5 w-5" />
                 )}
               </Button>
-              <Button variant="default" onClick={handleAuth}>Sign In</Button>
-              <Button variant="outline" onClick={handleGetStarted}>Get Started</Button>
+              <Button variant="default" onClick={handleAuth}>
+                {user ? "Dashboard" : "Sign In"}
+              </Button>
+              <Button variant="outline" onClick={handleGetStarted}>
+                Get Started
+              </Button>
             </div>
           </nav>
         </div>
