@@ -2,13 +2,35 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { MoonIcon, SunIcon } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/components/ui/use-toast";
 
 const Index = () => {
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const navigate = useNavigate();
+  const { user, signInWithEmail } = useAuth();
+  const { toast } = useToast();
 
   const toggleTheme = () => {
     setIsDarkMode(!isDarkMode);
     document.documentElement.classList.toggle("dark");
+  };
+
+  const handleAuth = () => {
+    if (user) {
+      navigate("/dashboard");
+    } else {
+      // For now, we'll show a toast until auth is fully implemented
+      toast({
+        title: "Coming Soon",
+        description: "Authentication will be implemented shortly.",
+      });
+    }
+  };
+
+  const handleGetStarted = () => {
+    handleAuth();
   };
 
   return (
@@ -30,8 +52,8 @@ const Index = () => {
                   <MoonIcon className="h-5 w-5" />
                 )}
               </Button>
-              <Button variant="default">Sign In</Button>
-              <Button variant="outline">Get Started</Button>
+              <Button variant="default" onClick={handleAuth}>Sign In</Button>
+              <Button variant="outline" onClick={handleGetStarted}>Get Started</Button>
             </div>
           </nav>
         </div>
@@ -48,7 +70,7 @@ const Index = () => {
                 Create, customize, and share your digital presence with QR-enabled
                 fashion. Change your story whenever you want.
               </p>
-              <Button size="lg" className="animate-fade-up">
+              <Button size="lg" className="animate-fade-up" onClick={handleGetStarted}>
                 Start Your Journey
               </Button>
             </div>
@@ -96,7 +118,7 @@ const Index = () => {
         <section className="section-padding">
           <div className="container mx-auto text-center">
             <h2 className="text-3xl font-bold mb-12">Ready to Get Started?</h2>
-            <Button size="lg" variant="default">
+            <Button size="lg" variant="default" onClick={handleGetStarted}>
               Create Your Page
             </Button>
           </div>
