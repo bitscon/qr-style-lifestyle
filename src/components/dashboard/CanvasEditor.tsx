@@ -267,72 +267,66 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
         });
         break;
       case 'pentagon':
-        const pentagonPoints = [
-          { x: 50, y: 0 },
-          { x: 100, y: 40 },
-          { x: 80, y: 100 },
-          { x: 20, y: 100 },
-          { x: 0, y: 40 }
-        ];
         shape = new Polygon({
           ...baseProps,
-          points: pentagonPoints,
+          points: [
+            { x: 50, y: 0 },
+            { x: 100, y: 40 },
+            { x: 80, y: 100 },
+            { x: 20, y: 100 },
+            { x: 0, y: 40 }
+          ].map(point => ({ x: point.x, y: point.y })),
         });
         break;
       case 'hexagon':
-        const hexagonPoints = [
-          { x: 50, y: 0 },
-          { x: 100, y: 25 },
-          { x: 100, y: 75 },
-          { x: 50, y: 100 },
-          { x: 0, y: 75 },
-          { x: 0, y: 25 }
-        ];
         shape = new Polygon({
           ...baseProps,
-          points: hexagonPoints,
+          points: [
+            { x: 50, y: 0 },
+            { x: 100, y: 25 },
+            { x: 100, y: 75 },
+            { x: 50, y: 100 },
+            { x: 0, y: 75 },
+            { x: 0, y: 25 }
+          ].map(point => ({ x: point.x, y: point.y })),
         });
         break;
       case 'star':
-        const starPath = 'M50 0L61 35H97L68 57L79 91L50 70L21 91L32 57L3 35H39Z';
         shape = new Path({
           ...baseProps,
-          path: starPath,
+          data: 'M50 0L61 35H97L68 57L79 91L50 70L21 91L32 57L3 35H39Z',
         });
         break;
       case 'heart':
-        const heartPath = 'M50 90C25 70 0 50 0 25C0 10 10 0 25 0S50 10 50 25C50 10 65 0 75 0S100 10 100 25C100 50 75 70 50 90Z';
         shape = new Path({
           ...baseProps,
-          path: heartPath,
+          data: 'M50 90C25 70 0 50 0 25C0 10 10 0 25 0S50 10 50 25C50 10 65 0 75 0S100 10 100 25C100 50 75 70 50 90Z',
         });
         break;
       case 'diamond':
-        const diamondPoints = [
-          { x: 50, y: 0 },
-          { x: 100, y: 50 },
-          { x: 50, y: 100 },
-          { x: 0, y: 50 }
-        ];
         shape = new Polygon({
           ...baseProps,
-          points: diamondPoints,
+          points: [
+            { x: 50, y: 0 },
+            { x: 100, y: 50 },
+            { x: 50, y: 100 },
+            { x: 0, y: 50 }
+          ].map(point => ({ x: point.x, y: point.y })),
         });
         break;
-      // Arrows
       case 'arrow up':
       case 'arrow down':
       case 'arrow left':
       case 'arrow right':
-        const arrowPath = {
+        const arrowPaths = {
           'arrow up': 'M50 0L100 50H75V100H25V50H0Z',
           'arrow down': 'M50 100L100 50H75V0H25V50H0Z',
           'arrow left': 'M0 50L50 100V75H100V25H50V0Z',
           'arrow right': 'M100 50L50 100V75H0V25H50V0Z'
-        }[shapeName.toLowerCase()];
+        };
         shape = new Path({
           ...baseProps,
-          path: arrowPath,
+          data: arrowPaths[shapeName.toLowerCase()],
         });
         break;
       default:
