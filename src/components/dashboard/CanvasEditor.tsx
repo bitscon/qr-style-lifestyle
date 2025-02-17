@@ -17,7 +17,9 @@ import {
   Heading,
   List,
   ListOrdered,
-  Palette
+  Palette,
+  Undo2,
+  Redo2
 } from "lucide-react";
 import {
   Select,
@@ -55,6 +57,10 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
   const [textColor, setTextColor] = useState("#000000");
   const [backgroundColor, setBackgroundColor] = useState("#ffffff");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+  const stateStackRef = useRef<string[]>([]);
+  const currentStateIndexRef = useRef(-1);
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -66,7 +72,7 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
     });
 
     fabricCanvas.on('object:modified', (e: ModifiedEvent<TPointerEvent>) => {
-      console.log('Canvas state updated:', fabricCanvas.toJSON());
+      saveState(fabricCanvas);
     });
 
     fabricCanvas.on('selection:created', (e) => {
@@ -85,6 +91,8 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
       setSelectedObject(null);
     });
 
+    // Save initial state
+    saveState(fabricCanvas);
     setCanvas(fabricCanvas);
     onCanvasReady(fabricCanvas);
 
@@ -92,6 +100,42 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
       fabricCanvas.dispose();
     };
   }, [onCanvasReady]);
+
+  const saveState = (fabricCanvas: Canvas) => {
+    const json = JSON.stringify(fabricCanvas.toJSON());
+    currentStateIndexRef.current++;
+    
+    // Remove any states after the current index (for redo functionality)
+    stateStackRef.current = stateStackRef.current.slice(0, currentStateIndexRef.current);
+    stateStackRef.current.push(json);
+    
+    setCanUndo(currentStateIndexRef.current > 0);
+    setCanRedo(false);
+  };
+
+  const undo = () => {
+    if (!canvas || currentStateIndexRef.current <= 0) return;
+    
+    currentStateIndexRef.current--;
+    const previousState = stateStackRef.current[currentStateIndexRef.current];
+    canvas.loadFromJSON(JSON.parse(previousState), () => {
+      canvas.renderAll();
+      setCanUndo(currentStateIndexRef.current > 0);
+      setCanRedo(currentStateIndexRef.current < stateStackRef.current.length - 1);
+    });
+  };
+
+  const redo = () => {
+    if (!canvas || currentStateIndexRef.current >= stateStackRef.current.length - 1) return;
+    
+    currentStateIndexRef.current++;
+    const nextState = stateStackRef.current[currentStateIndexRef.current];
+    canvas.loadFromJSON(JSON.parse(nextState), () => {
+      canvas.renderAll();
+      setCanUndo(currentStateIndexRef.current > 0);
+      setCanRedo(currentStateIndexRef.current < stateStackRef.current.length - 1);
+    });
+  };
 
   const addText = (style: 'normal' | 'heading' | 'subheading' | 'list' | 'ordered-list') => {
     if (!canvas) return;
@@ -142,6 +186,7 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
     canvas.add(text);
     canvas.setActiveObject(text);
     canvas.renderAll();
+    saveState(canvas);
   };
 
   const addShape = (type: 'rectangle' | 'circle') => {
@@ -164,6 +209,7 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
     canvas.add(shape);
     canvas.setActiveObject(shape);
     canvas.renderAll();
+    saveState(canvas);
   };
 
   const addLink = () => {
@@ -176,6 +222,7 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
         fill: '#0000EE', // Default link color
       });
       canvas?.renderAll();
+      saveState(canvas);
     }
   };
 
@@ -186,13 +233,11 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
     const reader = new FileReader();
     reader.onload = (e) => {
       const imgUrl = e.target?.result as string;
-      fabric.Image.fromURL(imgUrl, {
-        crossOrigin: 'anonymous',
-        scaleX: 0.5,
-        scaleY: 0.5
-      }).then((img) => {
+      Image.fromURL(imgUrl).then((img) => {
+        img.scaleToWidth(200);
         canvas.add(img);
         canvas.renderAll();
+        saveState(canvas);
       });
     };
     reader.readAsDataURL(file);
@@ -213,12 +258,14 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
         break;
     }
     canvas?.renderAll();
+    saveState(canvas);
   };
 
   const alignText = (alignment: 'left' | 'center' | 'right') => {
     if (!selectedObject) return;
     selectedObject.set('textAlign', alignment);
     canvas?.renderAll();
+    saveState(canvas);
   };
 
   const handleFontSizeChange = (value: string) => {
@@ -226,6 +273,7 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
     setFontSize(value);
     selectedObject.set('fontSize', parseInt(value));
     canvas?.renderAll();
+    saveState(canvas);
   };
 
   const handleFontFamilyChange = (value: string) => {
@@ -233,6 +281,7 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
     setFontFamily(value);
     selectedObject.set('fontFamily', value);
     canvas?.renderAll();
+    saveState(canvas);
   };
 
   const handleColorChange = (color: string, type: 'text' | 'background') => {
@@ -241,12 +290,14 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
       if (selectedObject) {
         selectedObject.set('fill', color);
         canvas?.renderAll();
+        saveState(canvas);
       }
     } else {
       setBackgroundColor(color);
       if (canvas) {
         canvas.backgroundColor = color;
         canvas.renderAll();
+        saveState(canvas);
       }
     }
   };
@@ -254,6 +305,27 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2 p-2 bg-muted rounded-lg">
+        <div className="flex gap-2 items-center border-r pr-2">
+          <Button 
+            type="button" 
+            variant="ghost" 
+            size="sm" 
+            onClick={undo}
+            disabled={!canUndo}
+          >
+            <Undo2 className="h-4 w-4" />
+          </Button>
+          <Button 
+            type="button" 
+            variant="ghost" 
+            size="sm" 
+            onClick={redo}
+            disabled={!canRedo}
+          >
+            <Redo2 className="h-4 w-4" />
+          </Button>
+        </div>
+
         <div className="flex gap-2 items-center border-r pr-2">
           <Button type="button" variant="ghost" size="sm" onClick={() => addText('heading')}>
             <Heading className="h-4 w-4" />
