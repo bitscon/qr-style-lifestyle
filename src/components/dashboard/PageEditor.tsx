@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Canvas } from "fabric";
+import { Canvas, TEvent, Text, Rect, Circle } from "fabric";
 import {
   Select,
   SelectContent,
@@ -30,9 +30,12 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import { CanvasEditor } from "./CanvasEditor";
-import { QRCodeSection } from "./QRCodeSection";
-import { PageContent, Page } from "./types";
+import { Loader2, Type, Image, Square, Circle as CircleIcon } from "lucide-react";
+
+interface PageContent {
+  template: string;
+  canvasData: object;
+}
 
 export function PageEditor() {
   const { id } = useParams();
@@ -41,7 +44,9 @@ export function PageEditor() {
   const { toast } = useToast();
   const [title, setTitle] = useState("");
   const [isPublished, setIsPublished] = useState(false);
+  const [isGeneratingQR, setIsGeneratingQR] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState("blank");
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [canvas, setCanvas] = useState<Canvas | null>(null);
   const [activeTab, setActiveTab] = useState("editor");
 
@@ -56,10 +61,99 @@ export function PageEditor() {
         .single();
 
       if (error) throw error;
-      return data as Page;
+      return data;
     },
     enabled: !!id,
   });
+
+  useEffect(() => {
+    if (page) {
+      setTitle(page.title);
+      setIsPublished(page.is_published || false);
+      const content = page.content as PageContent;
+      if (content?.template) {
+        setSelectedTemplate(content.template);
+      }
+    }
+  }, [page]);
+
+  useEffect(() => {
+    if (!canvasRef.current) return;
+
+    const fabricCanvas = new Canvas(canvasRef.current, {
+      width: 800,
+      height: 600,
+      backgroundColor: '#ffffff',
+    });
+
+    fabricCanvas.on('object:modified', saveCanvasState);
+    setCanvas(fabricCanvas);
+
+    return () => {
+      fabricCanvas.dispose();
+    };
+  }, []);
+
+  const saveCanvasState = (e: TEvent) => {
+    if (!canvas) return;
+    console.log('Canvas state updated:', canvas.toJSON());
+  };
+
+  const addText = () => {
+    if (!canvas) return;
+    const text = new Text('Click to edit text', {
+      left: 100,
+      top: 100,
+      fontSize: 20,
+      fill: '#000000',
+    });
+    canvas.add(text);
+    canvas.setActiveObject(text);
+    canvas.renderAll();
+  };
+
+  const addShape = (type: 'rectangle' | 'circle') => {
+    if (!canvas) return;
+    
+    const props = {
+      left: 100,
+      top: 100,
+      fill: '#e9ecef',
+      width: 100,
+      height: 100,
+      stroke: '#000000',
+      strokeWidth: 1,
+    };
+
+    const shape = type === 'rectangle' 
+      ? new Rect(props)
+      : new Circle({ ...props, radius: 50 });
+
+    canvas.add(shape);
+    canvas.setActiveObject(shape);
+    canvas.renderAll();
+  };
+
+  const generateQRCode = async (pageId: string) => {
+    setIsGeneratingQR(true);
+    try {
+      const { error } = await supabase.functions.invoke('generate-qr', {
+        body: { pageId },
+      });
+      if (error) throw error;
+      toast({
+        title: "QR Code generated successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error generating QR code",
+        description: (error as Error).message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingQR(false);
+    }
+  };
 
   const mutation = useMutation({
     mutationFn: async (data: {
@@ -67,15 +161,10 @@ export function PageEditor() {
       content: PageContent;
       is_published: boolean;
     }) => {
-      const payload = {
-        ...data,
-        content: data.content as unknown as Record<string, any>,
-      };
-
       if (id) {
         const { error } = await supabase
           .from("pages")
-          .update(payload)
+          .update(data)
           .eq("id", id);
         if (error) throw error;
       } else {
@@ -83,13 +172,17 @@ export function PageEditor() {
           .from("pages")
           .insert([
             {
-              ...payload,
+              ...data,
               user_id: user?.id,
             },
           ])
           .select()
           .single();
         if (error) throw error;
+        
+        if (data.is_published && newPage) {
+          await generateQRCode(newPage.id);
+        }
         return newPage;
       }
     },
@@ -117,7 +210,7 @@ export function PageEditor() {
 
     const content: PageContent = {
       template: selectedTemplate,
-      canvasData: canvas.toJSON() as Record<string, any>,
+      canvasData: canvas.toJSON(),
     };
 
     mutation.mutate({
@@ -179,8 +272,24 @@ export function PageEditor() {
                 <TabsTrigger value="editor">Visual Editor</TabsTrigger>
                 <TabsTrigger value="preview">Preview</TabsTrigger>
               </TabsList>
-              <TabsContent value="editor">
-                <CanvasEditor onCanvasReady={setCanvas} />
+              <TabsContent value="editor" className="space-y-4">
+                <div className="flex gap-2 mb-4">
+                  <Button type="button" variant="outline" onClick={addText}>
+                    <Type className="mr-2 h-4 w-4" />
+                    Add Text
+                  </Button>
+                  <Button type="button" variant="outline" onClick={() => addShape('rectangle')}>
+                    <Square className="mr-2 h-4 w-4" />
+                    Add Rectangle
+                  </Button>
+                  <Button type="button" variant="outline" onClick={() => addShape('circle')}>
+                    <Circle className="mr-2 h-4 w-4" />
+                    Add Circle
+                  </Button>
+                </div>
+                <div className="border rounded-lg overflow-hidden">
+                  <canvas ref={canvasRef} />
+                </div>
               </TabsContent>
               <TabsContent value="preview">
                 <div className="border rounded-lg p-4 min-h-[600px]">
@@ -208,7 +317,46 @@ export function PageEditor() {
         </Card>
       </form>
 
-      <QRCodeSection page={page} />
+      {page?.qr_code_url && (
+        <Card>
+          <CardHeader>
+            <CardTitle>QR Code</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <img 
+              src={page.qr_code_url} 
+              alt="Page QR Code"
+              className="max-w-[200px] mx-auto"
+            />
+          </CardContent>
+          <CardFooter className="flex justify-center">
+            <Button
+              variant="outline"
+              onClick={() => window.open(page.qr_code_url, '_blank')}
+            >
+              Download QR Code
+            </Button>
+          </CardFooter>
+        </Card>
+      )}
+
+      {page && !page.qr_code_url && page.is_published && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Generate QR Code</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Button
+              onClick={() => generateQRCode(page.id)}
+              disabled={isGeneratingQR}
+              className="w-full"
+            >
+              {isGeneratingQR && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Generate QR Code
+            </Button>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
