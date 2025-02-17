@@ -60,14 +60,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signInWithEmail = async (email: string, password: string, persistSession: boolean = true) => {
     try {
+      // We'll use the Auth Preferences in Supabase dashboard to control session persistence
       const { error } = await supabase.auth.signInWithPassword({
         email,
-        password,
-        options: {
-          data: {
-            persistSession
-          }
-        }
+        password
       });
       
       if (error) {
@@ -100,9 +96,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         provider,
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
-          data: {
-            persistSession: true
-          }
         }
       });
       if (error) throw error;
