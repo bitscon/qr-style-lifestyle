@@ -233,20 +233,24 @@ const Dashboard = () => {
                       <CardContent className="flex flex-col items-center space-y-4">
                         {profile?.qr_code_url ? (
                           <>
-                            <div className="relative">
+                            <div className="relative group">
                               <img 
                                 src={profile.qr_code_url} 
                                 alt="Your QR Code"
-                                className="max-w-[250px] mx-auto"
+                                className="max-w-[250px] mx-auto rounded-lg shadow-sm"
                               />
-                              <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity bg-black/50 rounded">
-                                <Button
-                                  variant="secondary"
-                                  onClick={() => window.open(profile.qr_code_url, '_blank')}
+                              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 rounded-lg">
+                                <a
+                                  href={profile.qr_code_url}
+                                  download="qr-code.png"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
                                 >
-                                  <Download className="mr-2 h-4 w-4" />
-                                  Download
-                                </Button>
+                                  <Button variant="secondary">
+                                    <Download className="mr-2 h-4 w-4" />
+                                    Download
+                                  </Button>
+                                </a>
                               </div>
                             </div>
                             <div className="flex items-center gap-2 text-muted-foreground">
