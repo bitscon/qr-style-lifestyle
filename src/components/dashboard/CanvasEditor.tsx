@@ -1,6 +1,6 @@
 
 import { useEffect, useRef, useState } from "react";
-import { Canvas, TEvent, Text, Rect, Circle, ModifiedEvent, TPointerEvent, IText } from "fabric";
+import { Canvas, Text as FabricText, Rect, Circle, ModifiedEvent, TPointerEvent } from "fabric";
 import { Button } from "@/components/ui/button";
 import { 
   Type, 
@@ -11,11 +11,7 @@ import {
   Underline,
   AlignLeft,
   AlignCenter,
-  AlignRight,
-  Link,
-  Image,
-  Heading,
-  List
+  AlignRight
 } from "lucide-react";
 import {
   Select,
@@ -32,7 +28,7 @@ interface CanvasEditorProps {
 export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [canvas, setCanvas] = useState<Canvas | null>(null);
-  const [selectedObject, setSelectedObject] = useState<IText | null>(null);
+  const [selectedObject, setSelectedObject] = useState<FabricText | null>(null);
   const [fontSize, setFontSize] = useState("16");
 
   useEffect(() => {
@@ -50,9 +46,11 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
 
     fabricCanvas.on('selection:created', (e) => {
       const selected = fabricCanvas.getActiveObject();
-      if (selected instanceof Text) {
+      if (selected instanceof FabricText) {
         setSelectedObject(selected);
         setFontSize(selected.fontSize?.toString() || "16");
+      } else {
+        setSelectedObject(null);
       }
     });
 
@@ -72,7 +70,7 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
     if (!canvas) return;
     
     const fontSize = style === 'heading' ? 32 : style === 'subheading' ? 24 : 16;
-    const text = new Text('Click to edit text', {
+    const text = new FabricText('Click to edit text', {
       left: 100,
       top: 100,
       fontSize,
@@ -141,7 +139,8 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
       <div className="flex flex-wrap gap-2 p-2 bg-muted rounded-lg">
         <div className="flex gap-2 items-center border-r pr-2">
           <Button type="button" variant="ghost" size="sm" onClick={() => addText('heading')}>
-            <Heading className="h-4 w-4" />
+            <Type className="h-4 w-4" />
+            H
           </Button>
           <Button type="button" variant="ghost" size="sm" onClick={() => addText('normal')}>
             <Type className="h-4 w-4" />
