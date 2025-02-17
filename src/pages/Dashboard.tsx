@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Routes, Route, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,6 +26,10 @@ import {
   Settings as SettingsIcon,
   Menu,
   LogOut,
+  Smartphone,
+  QrCode,
+  Download,
+  Loader2
 } from "lucide-react";
 import {
   Sheet,
@@ -33,18 +38,21 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { useToast } from "@/components/ui/use-toast";
 
 const Dashboard = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isGeneratingQR, setIsGeneratingQR] = useState(false);
+  const { toast } = useToast();
 
-  const { data: profile } = useQuery({
+  const { data: profile, refetch: refetchProfile } = useQuery({
     queryKey: ["profile"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("*")
+        .select("*, pages!pages(is_published)")
         .eq("id", user?.id)
         .single();
 
@@ -52,6 +60,48 @@ const Dashboard = () => {
       return data;
     },
   });
+
+  const { data: publishedPage } = useQuery({
+    queryKey: ["published-page"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pages")
+        .select("*")
+        .eq("user_id", user?.id)
+        .eq("is_published", true)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const generateQRCode = async () => {
+    if (!user) return;
+    
+    setIsGeneratingQR(true);
+    try {
+      const { error } = await supabase.functions.invoke('generate-qr', {
+        body: { userId: user.id },
+      });
+      if (error) throw error;
+      
+      await refetchProfile();
+      
+      toast({
+        title: "QR Code generated successfully",
+        description: "Scan it with your phone to test your published page",
+      });
+    } catch (error) {
+      toast({
+        title: "Error generating QR code",
+        description: (error as Error).message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingQR(false);
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -167,23 +217,79 @@ const Dashboard = () => {
             <Route
               index
               element={
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Welcome back{profile?.full_name ? `, ${profile.full_name}` : ''}</CardTitle>
-                      <CardDescription>
-                        Manage your digital identity and QR-enabled products
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <Button 
-                        onClick={() => navigate("/dashboard/pages/new")}
-                        className="w-full"
-                      >
-                        Create New Page
-                      </Button>
-                    </CardContent>
-                  </Card>
+                <div className="space-y-6">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {/* QR Code Card */}
+                    <Card className="md:col-span-2">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <QrCode className="h-6 w-6" />
+                          Your Digital Identity
+                        </CardTitle>
+                        <CardDescription>
+                          Generate your unique QR code to share your digital presence. This QR code will always point to your currently published page.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="flex flex-col items-center space-y-4">
+                        {profile?.qr_code_url ? (
+                          <>
+                            <div className="relative">
+                              <img 
+                                src={profile.qr_code_url} 
+                                alt="Your QR Code"
+                                className="max-w-[250px] mx-auto"
+                              />
+                              <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity bg-black/50 rounded">
+                                <Button
+                                  variant="secondary"
+                                  onClick={() => window.open(profile.qr_code_url, '_blank')}
+                                >
+                                  <Download className="mr-2 h-4 w-4" />
+                                  Download
+                                </Button>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <Smartphone className="h-4 w-4" />
+                              <span>Scan with your phone's camera to test</span>
+                            </div>
+                          </>
+                        ) : (
+                          <Button
+                            onClick={generateQRCode}
+                            disabled={isGeneratingQR || !publishedPage}
+                            className="w-full max-w-md"
+                          >
+                            {isGeneratingQR && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {!publishedPage ? "Publish a page first" : "Generate QR Code"}
+                          </Button>
+                        )}
+                      </CardContent>
+                      {profile?.qr_code_url && (
+                        <CardFooter className="justify-center text-sm text-muted-foreground">
+                          This QR code will always point to your currently published page
+                        </CardFooter>
+                      )}
+                    </Card>
+
+                    {/* Welcome Card */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Welcome back{profile?.full_name ? `, ${profile.full_name}` : ''}</CardTitle>
+                        <CardDescription>
+                          Manage your digital identity and QR-enabled products
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Button 
+                          onClick={() => navigate("/dashboard/pages/new")}
+                          className="w-full"
+                        >
+                          Create New Page
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </div>
                 </div>
               }
             />

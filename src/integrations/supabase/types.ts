@@ -123,6 +123,7 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          qr_code_url: string | null
           subscription_status: string | null
           subscription_tier:
             | Database["public"]["Enums"]["subscription_tier"]
@@ -136,6 +137,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id: string
+          qr_code_url?: string | null
           subscription_status?: string | null
           subscription_tier?:
             | Database["public"]["Enums"]["subscription_tier"]
@@ -149,6 +151,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          qr_code_url?: string | null
           subscription_status?: string | null
           subscription_tier?:
             | Database["public"]["Enums"]["subscription_tier"]
