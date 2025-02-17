@@ -33,6 +33,7 @@ import {
 import { CanvasEditor } from "./CanvasEditor";
 import { QRCodeSection } from "./QRCodeSection";
 import { PageContent, Page } from "./types";
+import { Json } from "@/integrations/supabase/types";
 
 export function PageEditor() {
   const { id } = useParams();
@@ -77,21 +78,24 @@ export function PageEditor() {
       content: PageContent;
       is_published: boolean;
     }) => {
+      // Convert PageContent to Json type for Supabase
+      const supabaseData = {
+        title: data.title,
+        content: data.content as unknown as Json,
+        is_published: data.is_published,
+        user_id: user?.id,
+      };
+
       if (id) {
         const { error } = await supabase
           .from("pages")
-          .update(data)
+          .update(supabaseData)
           .eq("id", id);
         if (error) throw error;
       } else {
         const { data: newPage, error } = await supabase
           .from("pages")
-          .insert([
-            {
-              ...data,
-              user_id: user?.id,
-            },
-          ])
+          .insert([supabaseData])
           .select()
           .single();
         if (error) throw error;
