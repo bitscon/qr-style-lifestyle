@@ -187,6 +187,8 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
           fontWeight: 'bold',
           fill: textColor,
           fontFamily,
+          editable: true,
+          selectable: true
         });
         break;
       case 'list':
@@ -197,6 +199,8 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
           fill: textColor,
           fontFamily,
           lineHeight: 1.5,
+          editable: true,
+          selectable: true
         });
         break;
       case 'ordered-list':
@@ -207,6 +211,8 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
           fill: textColor,
           fontFamily,
           lineHeight: 1.5,
+          editable: true,
+          selectable: true
         });
         break;
       default:
@@ -216,6 +222,8 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
           fontSize: style === 'subheading' ? 24 : 16,
           fill: textColor,
           fontFamily,
+          editable: true,
+          selectable: true
         });
     }
     
