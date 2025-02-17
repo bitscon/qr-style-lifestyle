@@ -49,7 +49,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
@@ -60,10 +60,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signInWithEmail = async (email: string, password: string, persistSession: boolean = true) => {
     try {
-      // We'll use the Auth Preferences in Supabase dashboard to control session persistence
       const { error } = await supabase.auth.signInWithPassword({
         email,
-        password
+        password,
       });
       
       if (error) {
@@ -153,13 +152,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = async () => {
     try {
-      await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      // Clear session state after successful signout
+      setSession(null);
+      setUser(null);
+      
       toast({
         title: "Signed out successfully",
       });
     } catch (error) {
       toast({
         title: "Error signing out",
+        description: error instanceof Error ? error.message : "An error occurred",
         variant: "destructive",
       });
       throw error;
