@@ -30,6 +30,7 @@ serve(async (req) => {
       
       if (!response.ok) {
         const error = await response.json()
+        console.error('Printful API error:', error)
         throw new Error(error.message || 'Printful API error')
       }
       
@@ -58,6 +59,7 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
+    console.error('Function error:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
