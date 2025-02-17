@@ -109,8 +109,9 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
 
     fabricCanvas.on('mouse:dblclick', (options) => {
       if (options.target && options.target instanceof FabricText) {
-        options.target.enterEditing();
-        options.target.selectAll();
+        fabricCanvas.setActiveObject(options.target);
+        options.target.set({ isEditing: true });
+        fabricCanvas.requestRenderAll();
       }
     });
 
@@ -182,65 +183,46 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
     if (!canvas) return;
     
     let text;
+    const baseTextProps = {
+      left: 100,
+      top: 100,
+      fill: textColor,
+      fontFamily,
+      editable: true,
+      selectable: true,
+      borderColor: '#2196F3',
+      padding: 5,
+      cursorColor: '#2196F3',
+      cursorWidth: 2,
+      editingBorderColor: '#2196F3'
+    };
     
     switch (style) {
       case 'heading':
         text = new FabricText('Heading', {
-          left: 100,
-          top: 100,
+          ...baseTextProps,
           fontSize: 32,
-          fontWeight: 'bold',
-          fill: textColor,
-          fontFamily,
-          editable: true,
-          selectable: true,
-          borderColor: '#2196F3',
-          editingBorderColor: '#2196F3',
-          padding: 5
+          fontWeight: 'bold'
         });
         break;
       case 'list':
         text = new FabricText('• List item\n• List item\n• List item', {
-          left: 100,
-          top: 100,
+          ...baseTextProps,
           fontSize: 16,
-          fill: textColor,
-          fontFamily,
-          lineHeight: 1.5,
-          editable: true,
-          selectable: true,
-          borderColor: '#2196F3',
-          editingBorderColor: '#2196F3',
-          padding: 5
+          lineHeight: 1.5
         });
         break;
       case 'ordered-list':
         text = new FabricText('1. List item\n2. List item\n3. List item', {
-          left: 100,
-          top: 100,
+          ...baseTextProps,
           fontSize: 16,
-          fill: textColor,
-          fontFamily,
-          lineHeight: 1.5,
-          editable: true,
-          selectable: true,
-          borderColor: '#2196F3',
-          editingBorderColor: '#2196F3',
-          padding: 5
+          lineHeight: 1.5
         });
         break;
       default:
         text = new FabricText('Click to edit text', {
-          left: 100,
-          top: 100,
-          fontSize: style === 'subheading' ? 24 : 16,
-          fill: textColor,
-          fontFamily,
-          editable: true,
-          selectable: true,
-          borderColor: '#2196F3',
-          editingBorderColor: '#2196F3',
-          padding: 5
+          ...baseTextProps,
+          fontSize: style === 'subheading' ? 24 : 16
         });
     }
     
