@@ -1,1 +1,5 @@
+
 project_id = "vbenovmrqezlhzyxejdb"
+
+[functions.generate-qr]
+verify_jwt = true

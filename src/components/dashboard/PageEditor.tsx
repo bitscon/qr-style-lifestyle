@@ -10,6 +10,14 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Loader2 } from "lucide-react";
 
 export function PageEditor() {
   const { id } = useParams();
@@ -19,6 +27,7 @@ export function PageEditor() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [isPublished, setIsPublished] = useState(false);
+  const [isGeneratingQR, setIsGeneratingQR] = useState(false);
 
   const { data: page, isLoading } = useQuery({
     queryKey: ["page", id],
@@ -44,6 +53,27 @@ export function PageEditor() {
     }
   }, [page]);
 
+  const generateQRCode = async (pageId: string) => {
+    setIsGeneratingQR(true);
+    try {
+      const { error } = await supabase.functions.invoke('generate-qr', {
+        body: { pageId },
+      });
+      if (error) throw error;
+      toast({
+        title: "QR Code generated successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error generating QR code",
+        description: (error as Error).message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingQR(false);
+    }
+  };
+
   const mutation = useMutation({
     mutationFn: async (data: {
       title: string;
@@ -57,16 +87,26 @@ export function PageEditor() {
           .eq("id", id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("pages").insert([
-          {
-            ...data,
-            user_id: user?.id,
-          },
-        ]);
+        const { data: newPage, error } = await supabase
+          .from("pages")
+          .insert([
+            {
+              ...data,
+              user_id: user?.id,
+            },
+          ])
+          .select()
+          .single();
         if (error) throw error;
+        
+        // Generate QR code for new published pages
+        if (data.is_published && newPage) {
+          await generateQRCode(newPage.id);
+        }
+        return newPage;
       }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast({
         title: "Success",
         description: `Page ${id ? "updated" : "created"} successfully`,
@@ -107,53 +147,96 @@ export function PageEditor() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl mx-auto">
-      <div>
-        <Label htmlFor="title">Title</Label>
-        <Input
-          id="title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Enter page title"
-        />
-      </div>
+    <div className="max-w-4xl mx-auto space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div>
+          <Label htmlFor="title">Title</Label>
+          <Input
+            id="title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Enter page title"
+          />
+        </div>
 
-      <div>
-        <Label htmlFor="content">Content (JSON)</Label>
-        <Textarea
-          id="content"
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder="Enter page content in JSON format"
-          rows={10}
-        />
-      </div>
+        <div>
+          <Label htmlFor="content">Content (JSON)</Label>
+          <Textarea
+            id="content"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder="Enter page content in JSON format"
+            rows={10}
+          />
+        </div>
 
-      <div className="flex items-center space-x-2">
-        <Switch
-          id="published"
-          checked={isPublished}
-          onCheckedChange={setIsPublished}
-        />
-        <Label htmlFor="published">Published</Label>
-      </div>
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="published"
+            checked={isPublished}
+            onCheckedChange={setIsPublished}
+          />
+          <Label htmlFor="published">Published</Label>
+        </div>
 
-      <div className="flex justify-end space-x-4">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => navigate("/dashboard/pages")}
-        >
-          Cancel
-        </Button>
-        <Button type="submit" disabled={mutation.isPending}>
-          {mutation.isPending
-            ? "Saving..."
-            : id
-            ? "Update Page"
-            : "Create Page"}
-        </Button>
-      </div>
-    </form>
+        <div className="flex justify-end space-x-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => navigate("/dashboard/pages")}
+          >
+            Cancel
+          </Button>
+          <Button type="submit" disabled={mutation.isPending}>
+            {mutation.isPending
+              ? "Saving..."
+              : id
+              ? "Update Page"
+              : "Create Page"}
+          </Button>
+        </div>
+      </form>
+
+      {page?.qr_code_url && (
+        <Card>
+          <CardHeader>
+            <CardTitle>QR Code</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <img 
+              src={page.qr_code_url} 
+              alt="Page QR Code"
+              className="max-w-[200px] mx-auto"
+            />
+          </CardContent>
+          <CardFooter className="flex justify-center">
+            <Button
+              variant="outline"
+              onClick={() => window.open(page.qr_code_url, '_blank')}
+            >
+              Download QR Code
+            </Button>
+          </CardFooter>
+        </Card>
+      )}
+
+      {page && !page.qr_code_url && page.is_published && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Generate QR Code</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Button
+              onClick={() => generateQRCode(page.id)}
+              disabled={isGeneratingQR}
+              className="w-full"
+            >
+              {isGeneratingQR && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Generate QR Code
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 }
