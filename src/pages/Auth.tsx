@@ -13,12 +13,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Github } from "lucide-react";
+import { Github, Mail } from "lucide-react";
 
 export default function Auth() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showCheckEmail, setShowCheckEmail] = useState(false);
   const { signInWithEmail, signUp, signInWithOAuth } = useAuth();
   const navigate = useNavigate();
 
@@ -27,7 +28,7 @@ export default function Auth() {
     try {
       if (isSignUp) {
         await signUp(email, password);
-        // Don't navigate - user needs to verify email first
+        setShowCheckEmail(true);
       } else {
         await signInWithEmail(email, password);
         navigate("/dashboard");
@@ -36,6 +37,50 @@ export default function Auth() {
       // Error is handled in AuthContext
     }
   };
+
+  if (showCheckEmail) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Check your email</CardTitle>
+            <CardDescription>
+              We've sent a verification link to {email}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center justify-center space-y-4 text-center">
+              <Mail className="h-12 w-12 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
+                Click the link in the email to verify your account. If you don't see the email, check your spam folder.
+              </p>
+            </div>
+          </CardContent>
+          <CardFooter className="flex flex-col space-y-4">
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => navigate("/")}
+            >
+              Return to Home
+            </Button>
+            <Button
+              variant="link"
+              className="w-full"
+              onClick={() => {
+                setShowCheckEmail(false);
+                setEmail("");
+                setPassword("");
+                setIsSignUp(false);
+              }}
+            >
+              Back to Sign in
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
