@@ -1,6 +1,7 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { MoonIcon, SunIcon } from "lucide-react";
+import { MoonIcon, SunIcon, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
@@ -8,7 +9,7 @@ import { useToast } from "@/components/ui/use-toast";
 const Index = () => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { toast } = useToast();
 
   const toggleTheme = () => {
@@ -26,6 +27,15 @@ const Index = () => {
 
   const handleGetStarted = () => {
     handleAuth();
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      navigate("/");
+    } catch (error) {
+      console.error("Error logging out:", error);
+    }
   };
 
   return (
@@ -47,12 +57,26 @@ const Index = () => {
                   <MoonIcon className="h-5 w-5" />
                 )}
               </Button>
-              <Button variant="default" onClick={handleAuth}>
-                {user ? "Dashboard" : "Sign In"}
-              </Button>
-              <Button variant="outline" onClick={handleGetStarted}>
-                Get Started
-              </Button>
+              {user ? (
+                <>
+                  <Button variant="default" onClick={handleAuth}>
+                    Dashboard
+                  </Button>
+                  <Button variant="outline" onClick={handleLogout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Logout
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button variant="default" onClick={handleAuth}>
+                    Sign In
+                  </Button>
+                  <Button variant="outline" onClick={handleGetStarted}>
+                    Get Started
+                  </Button>
+                </>
+              )}
             </div>
           </nav>
         </div>

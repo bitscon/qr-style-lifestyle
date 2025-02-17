@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Routes, Route, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -23,6 +24,7 @@ import {
   ShoppingCart,
   Settings as SettingsIcon,
   Menu,
+  LogOut,
 } from "lucide-react";
 import {
   Sheet,
@@ -33,7 +35,7 @@ import {
 } from "@/components/ui/sheet";
 
 const Dashboard = () => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -50,6 +52,15 @@ const Dashboard = () => {
       return data;
     },
   });
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      navigate("/");
+    } catch (error) {
+      console.error("Error logging out:", error);
+    }
+  };
 
   const menuItems = [
     {
@@ -112,6 +123,14 @@ const Dashboard = () => {
                 {menuItems.map((item) => (
                   <MenuItem key={item.path} item={item} />
                 ))}
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start text-destructive"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="h-5 w-5" />
+                  <span className="ml-2">Logout</span>
+                </Button>
               </div>
             </SheetContent>
           </Sheet>
@@ -131,6 +150,14 @@ const Dashboard = () => {
             {menuItems.map((item) => (
               <MenuItem key={item.path} item={item} />
             ))}
+            <Button
+              variant="ghost"
+              className="w-full justify-start text-destructive"
+              onClick={handleLogout}
+            >
+              <LogOut className="h-5 w-5" />
+              <span className="ml-2">Logout</span>
+            </Button>
           </nav>
         </aside>
 
