@@ -1,11 +1,10 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,7 +16,21 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Canvas, IEvent } from "fabric";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import { Loader2, Type, Image, Square, Circle } from "lucide-react";
 
 export function PageEditor() {
   const { id } = useParams();
@@ -25,9 +38,12 @@ export function PageEditor() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
   const [isPublished, setIsPublished] = useState(false);
   const [isGeneratingQR, setIsGeneratingQR] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState("blank");
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [canvas, setCanvas] = useState<Canvas | null>(null);
+  const [activeTab, setActiveTab] = useState("editor");
 
   const { data: page, isLoading } = useQuery({
     queryKey: ["page", id],
@@ -48,10 +64,69 @@ export function PageEditor() {
   useEffect(() => {
     if (page) {
       setTitle(page.title);
-      setContent(JSON.stringify(page.content, null, 2));
       setIsPublished(page.is_published || false);
+      if (typeof page.content === 'object' && page.content.template) {
+        setSelectedTemplate(page.content.template);
+      }
     }
   }, [page]);
+
+  useEffect(() => {
+    if (!canvasRef.current) return;
+
+    const fabricCanvas = new Canvas(canvasRef.current, {
+      width: 800,
+      height: 600,
+      backgroundColor: '#ffffff',
+    });
+
+    fabricCanvas.on('object:modified', saveCanvasState);
+    setCanvas(fabricCanvas);
+
+    return () => {
+      fabricCanvas.dispose();
+    };
+  }, []);
+
+  const saveCanvasState = (e: IEvent<Event>) => {
+    if (!canvas) return;
+    // Save canvas state to be used when saving the page
+    console.log('Canvas state updated:', canvas.toJSON());
+  };
+
+  const addText = () => {
+    if (!canvas) return;
+    const text = canvas.add(new fabric.Text('Click to edit text', {
+      left: 100,
+      top: 100,
+      fontSize: 20,
+      fill: '#000000',
+    }));
+    canvas.setActiveObject(text);
+    canvas.renderAll();
+  };
+
+  const addShape = (type: 'rectangle' | 'circle') => {
+    if (!canvas) return;
+    
+    const props = {
+      left: 100,
+      top: 100,
+      fill: '#e9ecef',
+      width: 100,
+      height: 100,
+      stroke: '#000000',
+      strokeWidth: 1,
+    };
+
+    const shape = type === 'rectangle' 
+      ? new fabric.Rect(props)
+      : new fabric.Circle({ ...props, radius: 50 });
+
+    canvas.add(shape);
+    canvas.setActiveObject(shape);
+    canvas.renderAll();
+  };
 
   const generateQRCode = async (pageId: string) => {
     setIsGeneratingQR(true);
@@ -99,7 +174,6 @@ export function PageEditor() {
           .single();
         if (error) throw error;
         
-        // Generate QR code for new published pages
         if (data.is_published && newPage) {
           await generateQRCode(newPage.id);
         }
@@ -126,20 +200,18 @@ export function PageEditor() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      const contentObj = JSON.parse(content);
-      mutation.mutate({
-        title,
-        content: contentObj,
-        is_published: isPublished,
-      });
-    } catch (error) {
-      toast({
-        title: "Invalid JSON",
-        description: "Please check your content format",
-        variant: "destructive",
-      });
-    }
+    if (!canvas) return;
+
+    const content = {
+      template: selectedTemplate,
+      canvasData: canvas.toJSON(),
+    };
+
+    mutation.mutate({
+      title,
+      content,
+      is_published: isPublished,
+    });
   };
 
   if (isLoading) {
@@ -147,54 +219,96 @@ export function PageEditor() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-6xl mx-auto space-y-6">
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div>
-          <Label htmlFor="title">Title</Label>
-          <Input
-            id="title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Enter page title"
-          />
+        <div className="flex justify-between items-center">
+          <div className="space-y-2">
+            <Label htmlFor="title">Page Title</Label>
+            <Input
+              id="title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Enter page title"
+              className="max-w-md"
+            />
+          </div>
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="published"
+              checked={isPublished}
+              onCheckedChange={setIsPublished}
+            />
+            <Label htmlFor="published">Published</Label>
+          </div>
         </div>
 
-        <div>
-          <Label htmlFor="content">Content (JSON)</Label>
-          <Textarea
-            id="content"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="Enter page content in JSON format"
-            rows={10}
-          />
+        <div className="space-y-4">
+          <Label>Template</Label>
+          <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
+            <SelectTrigger className="max-w-md">
+              <SelectValue placeholder="Select a template" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="blank">Blank Page</SelectItem>
+              <SelectItem value="business">Business Card</SelectItem>
+              <SelectItem value="portfolio">Portfolio</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
-        <div className="flex items-center space-x-2">
-          <Switch
-            id="published"
-            checked={isPublished}
-            onCheckedChange={setIsPublished}
-          />
-          <Label htmlFor="published">Published</Label>
-        </div>
-
-        <div className="flex justify-end space-x-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => navigate("/dashboard/pages")}
-          >
-            Cancel
-          </Button>
-          <Button type="submit" disabled={mutation.isPending}>
-            {mutation.isPending
-              ? "Saving..."
-              : id
-              ? "Update Page"
-              : "Create Page"}
-          </Button>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Page Editor</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList>
+                <TabsTrigger value="editor">Visual Editor</TabsTrigger>
+                <TabsTrigger value="preview">Preview</TabsTrigger>
+              </TabsList>
+              <TabsContent value="editor" className="space-y-4">
+                <div className="flex gap-2 mb-4">
+                  <Button type="button" variant="outline" onClick={addText}>
+                    <Type className="mr-2 h-4 w-4" />
+                    Add Text
+                  </Button>
+                  <Button type="button" variant="outline" onClick={() => addShape('rectangle')}>
+                    <Square className="mr-2 h-4 w-4" />
+                    Add Rectangle
+                  </Button>
+                  <Button type="button" variant="outline" onClick={() => addShape('circle')}>
+                    <Circle className="mr-2 h-4 w-4" />
+                    Add Circle
+                  </Button>
+                </div>
+                <div className="border rounded-lg overflow-hidden">
+                  <canvas ref={canvasRef} />
+                </div>
+              </TabsContent>
+              <TabsContent value="preview">
+                <div className="border rounded-lg p-4 min-h-[600px]">
+                  Preview content will be shown here
+                </div>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+          <CardFooter className="flex justify-end space-x-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate("/dashboard/pages")}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={mutation.isPending}>
+              {mutation.isPending
+                ? "Saving..."
+                : id
+                ? "Update Page"
+                : "Create Page"}
+            </Button>
+          </CardFooter>
+        </Card>
       </form>
 
       {page?.qr_code_url && (
