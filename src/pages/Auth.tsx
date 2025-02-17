@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -20,6 +19,7 @@ export default function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showCheckEmail, setShowCheckEmail] = useState(false);
+  const [lastUsedEmail, setLastUsedEmail] = useState("");
   const { signInWithEmail, signUp, signInWithOAuth } = useAuth();
   const navigate = useNavigate();
 
@@ -28,13 +28,18 @@ export default function Auth() {
     try {
       if (isSignUp) {
         await signUp(email, password);
+        setLastUsedEmail(email);
         setShowCheckEmail(true);
       } else {
         await signInWithEmail(email, password);
         navigate("/dashboard");
       }
-    } catch (error) {
-      // Error is handled in AuthContext
+    } catch (error: any) {
+      if (error.message?.includes("Email not confirmed")) {
+        setLastUsedEmail(email);
+        setShowCheckEmail(true);
+      }
+      // Other errors are handled by AuthContext
     }
   };
 
@@ -45,7 +50,7 @@ export default function Auth() {
           <CardHeader>
             <CardTitle>Check your email</CardTitle>
             <CardDescription>
-              We've sent a verification link to {email}
+              We've sent a verification link to {lastUsedEmail}
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-6">
