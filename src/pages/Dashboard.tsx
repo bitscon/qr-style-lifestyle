@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Routes, Route, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -16,12 +15,13 @@ import { PageEditor } from "@/components/dashboard/PageEditor";
 import { PageList } from "@/components/dashboard/PageList";
 import { Products } from "@/components/dashboard/Products";
 import { Orders } from "@/components/dashboard/Orders";
+import { Settings } from "@/components/dashboard/Settings";
 import {
   LayoutDashboard,
   FileEdit,
   Package,
   ShoppingCart,
-  Settings,
+  Settings as SettingsIcon,
   Menu,
 } from "lucide-react";
 import {
@@ -74,7 +74,7 @@ const Dashboard = () => {
     },
     {
       label: "Settings",
-      icon: <Settings className="h-5 w-5" />,
+      icon: <SettingsIcon className="h-5 w-5" />,
       path: "/dashboard/settings",
     },
   ];
@@ -165,6 +165,7 @@ const Dashboard = () => {
             <Route path="pages/:id" element={<PageEditor />} />
             <Route path="products" element={<Products />} />
             <Route path="orders" element={<Orders />} />
+            <Route path="settings" element={<Settings />} />
           </Routes>
         </main>
       </div>
