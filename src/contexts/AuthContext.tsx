@@ -6,7 +6,7 @@ import {
   useState,
   ReactNode,
 } from "react";
-import { Session, User } from "@supabase/supabase-js";
+import { Session, User, Provider } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -14,6 +14,10 @@ interface AuthContextType {
   session: Session | null;
   user: User | null;
   signOut: () => Promise<void>;
+  signInWithEmail: (email: string, password: string) => Promise<void>;
+  signInWithOAuth: (provider: Provider) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
   loading: boolean;
 }
 
@@ -21,6 +25,10 @@ const AuthContext = createContext<AuthContextType>({
   session: null,
   user: null,
   signOut: async () => {},
+  signInWithEmail: async () => {},
+  signInWithOAuth: async () => {},
+  signUp: async () => {},
+  resetPassword: async () => {},
   loading: true,
 });
 
@@ -50,6 +58,81 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
+  const signInWithEmail = async (email: string, password: string) => {
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) throw error;
+      toast({
+        title: "Signed in successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error signing in",
+        description: error instanceof Error ? error.message : "An error occurred",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  const signInWithOAuth = async (provider: Provider) => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+      });
+      if (error) throw error;
+    } catch (error) {
+      toast({
+        title: "Error signing in",
+        description: error instanceof Error ? error.message : "An error occurred",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  const signUp = async (email: string, password: string) => {
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+      if (error) throw error;
+      toast({
+        title: "Sign up successful",
+        description: "Please check your email for verification.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error signing up",
+        description: error instanceof Error ? error.message : "An error occurred",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  const resetPassword = async (email: string) => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      if (error) throw error;
+      toast({
+        title: "Password reset email sent",
+        description: "Please check your email for the reset link.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error resetting password",
+        description: error instanceof Error ? error.message : "An error occurred",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
   const signOut = async () => {
     try {
       await supabase.auth.signOut();
@@ -61,6 +144,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         title: "Error signing out",
         variant: "destructive",
       });
+      throw error;
     }
   };
 
@@ -70,6 +154,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         session,
         user,
         signOut,
+        signInWithEmail,
+        signInWithOAuth,
+        signUp,
+        resetPassword,
         loading,
       }}
     >
