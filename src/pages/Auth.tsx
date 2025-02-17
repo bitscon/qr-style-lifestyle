@@ -1,9 +1,11 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Card,
   CardContent,
@@ -18,6 +20,7 @@ export default function Auth() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [persistSession, setPersistSession] = useState(true);
   const [showCheckEmail, setShowCheckEmail] = useState(false);
   const [lastUsedEmail, setLastUsedEmail] = useState("");
   const { signInWithEmail, signUp, signInWithOAuth } = useAuth();
@@ -31,7 +34,7 @@ export default function Auth() {
         setLastUsedEmail(email);
         setShowCheckEmail(true);
       } else {
-        await signInWithEmail(email, password);
+        await signInWithEmail(email, password, persistSession);
         navigate("/dashboard");
       }
     } catch (error: any) {
@@ -121,6 +124,21 @@ export default function Auth() {
                 required
               />
             </div>
+            {!isSignUp && (
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="persistSession"
+                  checked={persistSession}
+                  onCheckedChange={(checked) => setPersistSession(checked as boolean)}
+                />
+                <Label
+                  htmlFor="persistSession"
+                  className="text-sm font-normal leading-none cursor-pointer"
+                >
+                  Stay signed in
+                </Label>
+              </div>
+            )}
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
             <Button type="submit" className="w-full">

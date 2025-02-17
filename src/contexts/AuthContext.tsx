@@ -1,3 +1,4 @@
+
 import {
   createContext,
   useContext,
@@ -13,7 +14,7 @@ interface AuthContextType {
   session: Session | null;
   user: User | null;
   signOut: () => Promise<void>;
-  signInWithEmail: (email: string, password: string) => Promise<void>;
+  signInWithEmail: (email: string, password: string, persistSession?: boolean) => Promise<void>;
   signInWithOAuth: (provider: Provider) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
@@ -57,12 +58,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signInWithEmail = async (email: string, password: string) => {
+  const signInWithEmail = async (email: string, password: string, persistSession: boolean = true) => {
     try {
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
+        options: {
+          persistSession // This will keep the session active
+        }
       });
+      
       if (error) {
         if (error.message.includes("Email not confirmed")) {
           toast({
@@ -91,6 +96,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          persistSession: true // Always persist OAuth sessions
+        }
       });
       if (error) throw error;
     } catch (error) {
