@@ -20,6 +20,8 @@ serve(async (req) => {
       throw new Error('User ID is required')
     }
 
+    console.log('Generating QR code for user:', userId)
+
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
@@ -38,23 +40,37 @@ serve(async (req) => {
       throw new Error('User not found')
     }
 
-    // Generate QR code for the user's published page URL
-    // This URL will always point to their currently published page
-    const userPublishedPageUrl = `${Deno.env.get('PUBLIC_SITE_URL')}/u/${profile.id}`
+    console.log('Found user profile:', profile.id)
+
+    // Generate QR code URL (this would be the URL to the user's published page)
+    const baseUrl = Deno.env.get('PUBLIC_SITE_URL') || 'https://qrlife.io'
+    const userPublishedPageUrl = `${baseUrl}/u/${profile.id}`
+    
+    console.log('Generating QR code for URL:', userPublishedPageUrl)
+
+    // Generate QR code as a data URL
     const qrCodeDataUrl = await QRCode.toDataURL(userPublishedPageUrl, {
+      type: 'image/png',
       width: 400,
       margin: 2,
+      errorCorrectionLevel: 'H',
       color: {
         dark: '#000000',
         light: '#ffffff',
       },
     })
 
-    // Upload QR code to Supabase Storage
-    const qrCodeBuffer = Buffer.from(qrCodeDataUrl.split(',')[1], 'base64')
+    console.log('QR code generated successfully')
+
+    // Convert data URL to buffer
+    const base64Data = qrCodeDataUrl.split(',')[1]
+    const qrCodeBuffer = Buffer.from(base64Data, 'base64')
     const fileName = `qr-codes/user-${profile.id}.png`
 
-    const { data: uploadData, error: uploadError } = await supabase
+    console.log('Uploading QR code to storage')
+
+    // Upload to storage
+    const { error: uploadError } = await supabase
       .storage
       .from('public')
       .upload(fileName, qrCodeBuffer, {
@@ -62,7 +78,12 @@ serve(async (req) => {
         upsert: true,
       })
 
-    if (uploadError) throw uploadError
+    if (uploadError) {
+      console.error('Upload error:', uploadError)
+      throw uploadError
+    }
+
+    console.log('QR code uploaded successfully')
 
     // Get public URL
     const { data: publicUrl } = supabase
@@ -70,19 +91,27 @@ serve(async (req) => {
       .from('public')
       .getPublicUrl(fileName)
 
+    console.log('Got public URL:', publicUrl.publicUrl)
+
     // Update user profile with QR code URL
     const { error: updateError } = await supabase
       .from('profiles')
       .update({ qr_code_url: publicUrl.publicUrl })
       .eq('id', userId)
 
-    if (updateError) throw updateError
+    if (updateError) {
+      console.error('Profile update error:', updateError)
+      throw updateError
+    }
+
+    console.log('Profile updated with QR code URL')
 
     return new Response(
       JSON.stringify({ url: publicUrl.publicUrl }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
+    console.error('Error in generate-qr function:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
