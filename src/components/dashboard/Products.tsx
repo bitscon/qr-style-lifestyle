@@ -1,21 +1,21 @@
 
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
 import { ShoppingCart } from "lucide-react";
 
 export function Products() {
   const navigate = useNavigate();
-  
+
   const { data: products, isLoading } = useQuery({
     queryKey: ["products"],
     queryFn: async () => {
@@ -31,42 +31,34 @@ export function Products() {
   });
 
   if (isLoading) {
-    return <div className="flex items-center justify-center p-8">Loading products...</div>;
-  }
-
-  if (!products?.length) {
-    return (
-      <div className="flex flex-col items-center justify-center p-8">
-        <h2 className="text-xl font-semibold mb-2">No products available</h2>
-        <p className="text-muted-foreground">Check back later for new items</p>
-      </div>
-    );
+    return <div className="flex items-center justify-center p-8">Loading...</div>;
   }
 
   return (
-    <div className="space-y-6 p-4">
-      <h1 className="text-3xl font-bold">Our Products</h1>
+    <div className="container mx-auto p-4">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold">Products</h1>
+        <p className="text-muted-foreground">
+          Choose a product to create your custom QR-enabled merchandise
+        </p>
+      </div>
+
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {products.map((product) => (
-          <Card key={product.id} className="flex flex-col hover:shadow-lg transition-shadow">
+        {products?.map((product) => (
+          <Card key={product.id} className="flex flex-col">
             <CardHeader>
               <CardTitle>{product.name}</CardTitle>
               <CardDescription>{product.description}</CardDescription>
             </CardHeader>
             <CardContent className="flex-grow">
-              <p className="text-2xl font-bold text-primary">${product.price}</p>
-              <div className="mt-4 space-y-2">
-                <p className="text-sm text-muted-foreground">
-                  QR-enabled wearable that connects to your digital presence
-                </p>
-              </div>
+              <div className="text-2xl font-bold">${product.price}</div>
             </CardContent>
             <CardFooter>
               <Button 
                 className="w-full"
                 onClick={() => navigate(`/checkout/${product.id}`)}
               >
-                <ShoppingCart className="w-4 h-4 mr-2" />
+                <ShoppingCart className="mr-2 h-4 w-4" />
                 Buy Now
               </Button>
             </CardFooter>
