@@ -107,6 +107,13 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
       backgroundColor: '#ffffff',
     });
 
+    fabricCanvas.on('mouse:dblclick', (options) => {
+      if (options.target && options.target instanceof FabricText) {
+        options.target.enterEditing();
+        options.target.selectAll();
+      }
+    });
+
     fabricCanvas.on('object:modified', (e: ModifiedEvent<TPointerEvent>) => {
       saveState(fabricCanvas);
     });
@@ -127,7 +134,6 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
       setSelectedObject(null);
     });
 
-    // Save initial state
     saveState(fabricCanvas);
     setCanvas(fabricCanvas);
     onCanvasReady(fabricCanvas);
@@ -141,7 +147,6 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
     const json = JSON.stringify(fabricCanvas.toJSON());
     currentStateIndexRef.current++;
     
-    // Remove any states after the current index (for redo functionality)
     stateStackRef.current = stateStackRef.current.slice(0, currentStateIndexRef.current);
     stateStackRef.current.push(json);
     
@@ -188,7 +193,10 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
           fill: textColor,
           fontFamily,
           editable: true,
-          selectable: true
+          selectable: true,
+          borderColor: '#2196F3',
+          editingBorderColor: '#2196F3',
+          padding: 5
         });
         break;
       case 'list':
@@ -200,7 +208,10 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
           fontFamily,
           lineHeight: 1.5,
           editable: true,
-          selectable: true
+          selectable: true,
+          borderColor: '#2196F3',
+          editingBorderColor: '#2196F3',
+          padding: 5
         });
         break;
       case 'ordered-list':
@@ -212,7 +223,10 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
           fontFamily,
           lineHeight: 1.5,
           editable: true,
-          selectable: true
+          selectable: true,
+          borderColor: '#2196F3',
+          editingBorderColor: '#2196F3',
+          padding: 5
         });
         break;
       default:
@@ -223,7 +237,10 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
           fill: textColor,
           fontFamily,
           editable: true,
-          selectable: true
+          selectable: true,
+          borderColor: '#2196F3',
+          editingBorderColor: '#2196F3',
+          padding: 5
         });
     }
     
