@@ -16,7 +16,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Canvas, IEvent } from "fabric";
+import { Canvas, TEvent, Text, Rect, Circle } from "fabric";
 import {
   Select,
   SelectContent,
@@ -30,7 +30,12 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import { Loader2, Type, Image, Square, Circle } from "lucide-react";
+import { Loader2, Type, Image, Square, Circle as CircleIcon } from "lucide-react";
+
+interface PageContent {
+  template: string;
+  canvasData: object;
+}
 
 export function PageEditor() {
   const { id } = useParams();
@@ -65,8 +70,9 @@ export function PageEditor() {
     if (page) {
       setTitle(page.title);
       setIsPublished(page.is_published || false);
-      if (typeof page.content === 'object' && page.content.template) {
-        setSelectedTemplate(page.content.template);
+      const content = page.content as PageContent;
+      if (content?.template) {
+        setSelectedTemplate(content.template);
       }
     }
   }, [page]);
@@ -88,20 +94,20 @@ export function PageEditor() {
     };
   }, []);
 
-  const saveCanvasState = (e: IEvent<Event>) => {
+  const saveCanvasState = (e: TEvent) => {
     if (!canvas) return;
-    // Save canvas state to be used when saving the page
     console.log('Canvas state updated:', canvas.toJSON());
   };
 
   const addText = () => {
     if (!canvas) return;
-    const text = canvas.add(new fabric.Text('Click to edit text', {
+    const text = new Text('Click to edit text', {
       left: 100,
       top: 100,
       fontSize: 20,
       fill: '#000000',
-    }));
+    });
+    canvas.add(text);
     canvas.setActiveObject(text);
     canvas.renderAll();
   };
@@ -120,8 +126,8 @@ export function PageEditor() {
     };
 
     const shape = type === 'rectangle' 
-      ? new fabric.Rect(props)
-      : new fabric.Circle({ ...props, radius: 50 });
+      ? new Rect(props)
+      : new Circle({ ...props, radius: 50 });
 
     canvas.add(shape);
     canvas.setActiveObject(shape);
@@ -152,7 +158,7 @@ export function PageEditor() {
   const mutation = useMutation({
     mutationFn: async (data: {
       title: string;
-      content: any;
+      content: PageContent;
       is_published: boolean;
     }) => {
       if (id) {
@@ -202,7 +208,7 @@ export function PageEditor() {
     e.preventDefault();
     if (!canvas) return;
 
-    const content = {
+    const content: PageContent = {
       template: selectedTemplate,
       canvasData: canvas.toJSON(),
     };
