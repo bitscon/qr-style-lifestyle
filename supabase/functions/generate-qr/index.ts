@@ -15,9 +15,9 @@ serve(async (req) => {
   }
 
   try {
-    const { pageId } = await req.json()
-    if (!pageId) {
-      throw new Error('Page ID is required')
+    const { userId } = await req.json()
+    if (!userId) {
+      throw new Error('User ID is required')
     }
 
     // Initialize Supabase client
@@ -27,20 +27,21 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseKey)
 
-    // Get the page
-    const { data: page, error: pageError } = await supabase
-      .from('pages')
+    // Get the user profile
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
       .select('id')
-      .eq('id', pageId)
+      .eq('id', userId)
       .single()
 
-    if (pageError || !page) {
-      throw new Error('Page not found')
+    if (profileError || !profile) {
+      throw new Error('User not found')
     }
 
-    // Generate QR code
-    const pageUrl = `${Deno.env.get('PUBLIC_SITE_URL')}/p/${page.id}`
-    const qrCodeDataUrl = await QRCode.toDataURL(pageUrl, {
+    // Generate QR code for the user's published page URL
+    // This URL will always point to their currently published page
+    const userPublishedPageUrl = `${Deno.env.get('PUBLIC_SITE_URL')}/u/${profile.id}`
+    const qrCodeDataUrl = await QRCode.toDataURL(userPublishedPageUrl, {
       width: 400,
       margin: 2,
       color: {
@@ -51,7 +52,7 @@ serve(async (req) => {
 
     // Upload QR code to Supabase Storage
     const qrCodeBuffer = Buffer.from(qrCodeDataUrl.split(',')[1], 'base64')
-    const fileName = `qr-codes/${page.id}.png`
+    const fileName = `qr-codes/user-${profile.id}.png`
 
     const { data: uploadData, error: uploadError } = await supabase
       .storage
@@ -69,11 +70,11 @@ serve(async (req) => {
       .from('public')
       .getPublicUrl(fileName)
 
-    // Update page with QR code URL
+    // Update user profile with QR code URL
     const { error: updateError } = await supabase
-      .from('pages')
+      .from('profiles')
       .update({ qr_code_url: publicUrl.publicUrl })
-      .eq('id', pageId)
+      .eq('id', userId)
 
     if (updateError) throw updateError
 

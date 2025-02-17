@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { Page } from "./types";
 
 interface QRCodeSectionProps {
@@ -14,14 +15,36 @@ interface QRCodeSectionProps {
 export function QRCodeSection({ page }: QRCodeSectionProps) {
   const [isGeneratingQR, setIsGeneratingQR] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const [userQrCode, setUserQrCode] = useState<string | null>(null);
 
-  const generateQRCode = async (pageId: string) => {
+  // Fetch user's QR code on component mount
+  const fetchUserQrCode = async () => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('qr_code_url')
+      .eq('id', user.id)
+      .single();
+    
+    if (!error && data) {
+      setUserQrCode(data.qr_code_url);
+    }
+  };
+
+  const generateQRCode = async () => {
+    if (!user) return;
+    
     setIsGeneratingQR(true);
     try {
       const { error } = await supabase.functions.invoke('generate-qr', {
-        body: { pageId },
+        body: { userId: user.id },
       });
       if (error) throw error;
+      
+      // Fetch the updated QR code URL
+      await fetchUserQrCode();
+      
       toast({
         title: "QR Code generated successfully",
       });
@@ -36,25 +59,25 @@ export function QRCodeSection({ page }: QRCodeSectionProps) {
     }
   };
 
-  if (!page) return null;
+  if (!page?.is_published) return null;
 
-  if (page.qr_code_url) {
+  if (userQrCode) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>QR Code</CardTitle>
+          <CardTitle>Your QR Code</CardTitle>
         </CardHeader>
         <CardContent>
           <img 
-            src={page.qr_code_url} 
-            alt="Page QR Code"
+            src={userQrCode} 
+            alt="Your QR Code"
             className="max-w-[200px] mx-auto"
           />
         </CardContent>
         <CardFooter className="flex justify-center">
           <Button
             variant="outline"
-            onClick={() => window.open(page.qr_code_url, '_blank')}
+            onClick={() => window.open(userQrCode, '_blank')}
           >
             Download QR Code
           </Button>
@@ -63,25 +86,21 @@ export function QRCodeSection({ page }: QRCodeSectionProps) {
     );
   }
 
-  if (page.is_published) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Generate QR Code</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Button
-            onClick={() => generateQRCode(page.id)}
-            disabled={isGeneratingQR}
-            className="w-full"
-          >
-            {isGeneratingQR && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Generate QR Code
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return null;
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Generate Your QR Code</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Button
+          onClick={generateQRCode}
+          disabled={isGeneratingQR}
+          className="w-full"
+        >
+          {isGeneratingQR && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Generate QR Code
+        </Button>
+      </CardContent>
+    </Card>
+  );
 }
