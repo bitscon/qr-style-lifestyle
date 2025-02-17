@@ -284,7 +284,7 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
         ];
         shape = new Path({
           ...baseProps,
-          path: `M ${pentagonCoords.map(p => `${p.x} ${p.y}`).join(' L ')} Z`,
+          d: `M ${pentagonCoords.map(p => `${p.x} ${p.y}`).join(' L ')} Z`,
         });
         break;
       case 'hexagon':
@@ -298,19 +298,19 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
         ];
         shape = new Path({
           ...baseProps,
-          path: `M ${hexagonCoords.map(p => `${p.x} ${p.y}`).join(' L ')} Z`,
+          d: `M ${hexagonCoords.map(p => `${p.x} ${p.y}`).join(' L ')} Z`,
         });
         break;
       case 'star':
         shape = new Path({
           ...baseProps,
-          path: 'M50 0L61 35H97L68 57L79 91L50 70L21 91L32 57L3 35H39Z',
+          d: 'M50 0L61 35H97L68 57L79 91L50 70L21 91L32 57L3 35H39Z',
         });
         break;
       case 'heart':
         shape = new Path({
           ...baseProps,
-          path: 'M50 90C25 70 0 50 0 25C0 10 10 0 25 0S50 10 50 25C50 10 65 0 75 0S100 10 100 25C100 50 75 70 50 90Z',
+          d: 'M50 90C25 70 0 50 0 25C0 10 10 0 25 0S50 10 50 25C50 10 65 0 75 0S100 10 100 25C100 50 75 70 50 90Z',
         });
         break;
       case 'diamond':
@@ -322,7 +322,7 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
         ];
         shape = new Path({
           ...baseProps,
-          path: `M ${diamondCoords.map(p => `${p.x} ${p.y}`).join(' L ')} Z`,
+          d: `M ${diamondCoords.map(p => `${p.x} ${p.y}`).join(' L ')} Z`,
         });
         break;
       case 'arrow up':
@@ -337,7 +337,7 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
         };
         shape = new Path({
           ...baseProps,
-          path: arrowPaths[shapeName.toLowerCase()],
+          d: arrowPaths[shapeName.toLowerCase()],
         });
         break;
       default:
