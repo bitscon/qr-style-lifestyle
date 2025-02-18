@@ -30,29 +30,20 @@ export function usePageQuery(id: string | undefined) {
           return null;
         }
 
-        const pageData = data as unknown as {
-          content: Json;
-          created_at: string;
-          id: string;
-          is_published: boolean;
-          qr_code_url: string | null;
-          template_id: string | null;
-          title: string;
-          updated_at: string;
-          user_id: string;
-        };
-
-        const contentObj = typeof pageData.content === 'object' && pageData.content !== null 
-          ? pageData.content 
-          : {};
+        // Ensure content is properly typed and transformed
+        const content = data.content as Json;
         
-        const transformedPage = {
-          ...pageData,
+        const transformedPage: Page = {
+          ...data,
           content: {
-            template: (contentObj as any)?.template || "blank",
-            canvasData: (contentObj as any)?.canvasData || null,
+            template: typeof content === 'object' && content !== null 
+              ? (content.template as string) || "blank"
+              : "blank",
+            canvasData: typeof content === 'object' && content !== null 
+              ? content.canvasData || null
+              : null,
           },
-        } as Page;
+        };
 
         console.log("PageQuery: Final transformed page:", transformedPage);
         
