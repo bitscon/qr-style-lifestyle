@@ -8,6 +8,15 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+function base64ToUint8Array(base64String: string): Uint8Array {
+  const raw = atob(base64String);
+  const array = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) {
+    array[i] = raw.charCodeAt(i);
+  }
+  return array;
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -49,18 +58,13 @@ serve(async (req) => {
     console.log('Generating QR code for URL:', userPublishedPageUrl)
 
     // Generate QR code as a PNG data URL
-    const qrDataUrl = await qrcode.generate(userPublishedPageUrl, {
-      level: "Q",
-      size: 400,
-    });
+    const qrDataUrl = await qrcode.generate(userPublishedPageUrl);
+    const qrBase64 = qrDataUrl.split(',')[1];
 
-    // Convert data URL to Uint8Array
-    const base64Data = qrDataUrl.split(',')[1];
-    const binaryString = atob(base64Data);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
+    // Convert base64 to binary data using TextEncoder
+    const decoder = new TextDecoder('utf-8');
+    const encoder = new TextEncoder();
+    const binaryData = encoder.encode(decoder.decode(base64ToUint8Array(qrBase64)));
 
     const fileName = `qr-codes/user-${profile.id}.png`;
 
@@ -71,7 +75,7 @@ serve(async (req) => {
     const { error: uploadError } = await supabase
       .storage
       .from('public')
-      .upload(fileName, bytes, {
+      .upload(fileName, binaryData, {
         contentType: 'image/png',
         upsert: true,
       })
@@ -112,7 +116,7 @@ serve(async (req) => {
     console.error('Error in generate-qr function:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     )
   }
 })
