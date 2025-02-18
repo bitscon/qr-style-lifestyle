@@ -51,6 +51,11 @@ export function PageEditor() {
         
         console.log("PageEditor: Raw page data:", data);
         
+        if (!data) {
+          console.error("PageEditor: No data returned from Supabase");
+          return null;
+        }
+
         // Convert the raw data to our Page type
         const pageData = data as unknown as {
           content: Json;
@@ -67,17 +72,21 @@ export function PageEditor() {
         console.log("PageEditor: Transformed pageData:", pageData);
 
         // Safely access the content object
-        const contentObj = typeof pageData.content === 'object' ? pageData.content : {};
+        const contentObj = typeof pageData.content === 'object' && pageData.content !== null 
+          ? pageData.content 
+          : {};
         
         const transformedPage = {
           ...pageData,
           content: {
             template: (contentObj as any)?.template || "blank",
-            canvasData: (contentObj as any)?.canvasData || {},
+            canvasData: (contentObj as any)?.canvasData || null,
           },
         } as Page;
 
         console.log("PageEditor: Final transformed page:", transformedPage);
+        console.log("PageEditor: Canvas data:", transformedPage.content?.canvasData);
+        
         return transformedPage;
       } catch (error) {
         console.error("PageEditor: Error in queryFn:", error);
@@ -224,12 +233,14 @@ export function PageEditor() {
             <CardTitle>Page Editor</CardTitle>
           </CardHeader>
           <CardContent>
-            <PageEditorTabs
-              activeTab={activeTab}
-              setActiveTab={setActiveTab}
-              onCanvasReady={setCanvas}
-              initialCanvasData={page?.content?.canvasData}
-            />
+            {page && (
+              <PageEditorTabs
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
+                onCanvasReady={setCanvas}
+                initialCanvasData={page.content?.canvasData || null}
+              />
+            )}
           </CardContent>
           <CardFooter className="flex justify-end space-x-4">
             <Button

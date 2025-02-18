@@ -103,7 +103,7 @@ export function CanvasEditor({ onCanvasReady, initialData }: CanvasEditorProps) 
     console.log("CanvasEditor: Initializing with data:", initialData);
     
     if (!canvasEl.current) {
-      console.log("CanvasEditor: Canvas element not ready");
+      console.error("CanvasEditor: Canvas element not ready");
       return;
     }
 
@@ -113,14 +113,20 @@ export function CanvasEditor({ onCanvasReady, initialData }: CanvasEditorProps) 
       backgroundColor: '#ffffff',
     });
 
-    console.log("CanvasEditor: Canvas created, loading initial data");
+    console.log("CanvasEditor: Canvas created");
 
-    if (initialData && Object.keys(initialData).length > 0) {
-      console.log("CanvasEditor: Loading initial data into canvas");
-      fabricCanvas.loadFromJSON(initialData, () => {
-        console.log("CanvasEditor: Initial data loaded successfully");
-        fabricCanvas.renderAll();
-      });
+    if (initialData) {
+      console.log("CanvasEditor: Loading initial data into canvas:", initialData);
+      try {
+        fabricCanvas.loadFromJSON(initialData, () => {
+          console.log("CanvasEditor: Initial data loaded successfully");
+          fabricCanvas.renderAll();
+        }, (err, obj) => {
+          console.error("CanvasEditor: Error loading object:", err, obj);
+        });
+      } catch (error) {
+        console.error("CanvasEditor: Error loading initial data:", error);
+      }
     } else {
       console.log("CanvasEditor: No initial data to load");
     }
