@@ -1,7 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
-import * as qrcode from "https://deno.land/x/qrcode@v2.0.0/mod.ts";
+import { QRCode } from "https://deno.land/x/qrcode@v2.0.0/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -57,14 +57,15 @@ serve(async (req) => {
     
     console.log('Generating QR code for URL:', userPublishedPageUrl)
 
-    // Generate QR code as a PNG data URL
-    const qrDataUrl = await qrcode.generate(userPublishedPageUrl);
-    const qrBase64 = qrDataUrl.split(',')[1];
+    // Create QR code instance
+    const qr = new QRCode();
+    
+    // Generate QR code as PNG
+    const pngData = await qr.generatePng(userPublishedPageUrl);
 
-    // Convert base64 to binary data using TextEncoder
-    const decoder = new TextDecoder('utf-8');
-    const encoder = new TextEncoder();
-    const binaryData = encoder.encode(decoder.decode(base64ToUint8Array(qrBase64)));
+    // Convert PNG data to base64
+    const base64Data = btoa(String.fromCharCode(...new Uint8Array(pngData)));
+    const qrDataUrl = `data:image/png;base64,${base64Data}`;
 
     const fileName = `qr-codes/user-${profile.id}.png`;
 
@@ -75,7 +76,7 @@ serve(async (req) => {
     const { error: uploadError } = await supabase
       .storage
       .from('public')
-      .upload(fileName, binaryData, {
+      .upload(fileName, pngData, {
         contentType: 'image/png',
         upsert: true,
       })
