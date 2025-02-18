@@ -34,45 +34,64 @@ export function PageEditor() {
   const { data: page, isLoading } = useQuery({
     queryKey: ["page", id],
     queryFn: async () => {
+      console.log("PageEditor: Fetching page with ID:", id);
       if (!id) return null;
-      const { data, error } = await supabase
-        .from("pages")
-        .select("*")
-        .eq("id", id)
-        .single();
-
-      if (error) throw error;
       
-      // Convert the raw data to our Page type
-      const pageData = data as unknown as {
-        content: Json;
-        created_at: string;
-        id: string;
-        is_published: boolean;
-        qr_code_url: string | null;
-        template_id: string | null;
-        title: string;
-        updated_at: string;
-        user_id: string;
-      };
+      try {
+        const { data, error } = await supabase
+          .from("pages")
+          .select("*")
+          .eq("id", id)
+          .single();
 
-      // Transform the content to match PageContent type
-      const content = pageData.content as { template: string; canvasData: Record<string, any> };
-      
-      return {
-        ...pageData,
-        content: {
-          template: content?.template || "blank",
-          canvasData: content?.canvasData || {},
-        },
-      } as Page;
+        if (error) {
+          console.error("PageEditor: Error fetching page:", error);
+          throw error;
+        }
+        
+        console.log("PageEditor: Raw page data:", data);
+        
+        // Convert the raw data to our Page type
+        const pageData = data as unknown as {
+          content: Json;
+          created_at: string;
+          id: string;
+          is_published: boolean;
+          qr_code_url: string | null;
+          template_id: string | null;
+          title: string;
+          updated_at: string;
+          user_id: string;
+        };
+
+        console.log("PageEditor: Transformed pageData:", pageData);
+
+        const transformedPage = {
+          ...pageData,
+          content: {
+            template: pageData.content?.template || "blank",
+            canvasData: pageData.content?.canvasData || {},
+          },
+        } as Page;
+
+        console.log("PageEditor: Final transformed page:", transformedPage);
+        return transformedPage;
+      } catch (error) {
+        console.error("PageEditor: Error in queryFn:", error);
+        throw error;
+      }
     },
     enabled: !!id,
   });
 
-  // Update local state when page data is loaded
   useEffect(() => {
+    console.log("PageEditor: useEffect - page data changed:", page);
     if (page) {
+      console.log("PageEditor: Setting local state with:", {
+        title: page.title,
+        isPublished: page.is_published,
+        template: page.content?.template
+      });
       setTitle(page.title);
       setIsPublished(page.is_published || false);
       if (page.content?.template) {
@@ -87,31 +106,57 @@ export function PageEditor() {
       content: PageContent;
       is_published: boolean;
     }) => {
-      const supabaseData = {
-        title: data.title,
-        content: data.content as unknown as Json,
-        is_published: data.is_published,
-        user_id: user?.id,
-      };
+      console.log("PageEditor: Starting save mutation with data:", data);
+      
+      try {
+        const supabaseData = {
+          title: data.title,
+          content: data.content as unknown as Json,
+          is_published: data.is_published,
+          user_id: user?.id,
+        };
 
-      if (id) {
-        const { error } = await supabase
-          .from("pages")
-          .update(supabaseData)
-          .eq("id", id);
-        if (error) throw error;
-        return { id }; // Return the existing page id
-      } else {
-        const { data: newPage, error } = await supabase
-          .from("pages")
-          .insert([supabaseData])
-          .select()
-          .single();
-        if (error) throw error;
-        return newPage;
+        console.log("PageEditor: Transformed Supabase data:", supabaseData);
+
+        if (id) {
+          console.log("PageEditor: Updating existing page:", id);
+          const { data: updatedData, error } = await supabase
+            .from("pages")
+            .update(supabaseData)
+            .eq("id", id)
+            .select()
+            .single();
+
+          if (error) {
+            console.error("PageEditor: Error updating page:", error);
+            throw error;
+          }
+
+          console.log("PageEditor: Update successful:", updatedData);
+          return { id };
+        } else {
+          console.log("PageEditor: Creating new page");
+          const { data: newPage, error } = await supabase
+            .from("pages")
+            .insert([supabaseData])
+            .select()
+            .single();
+
+          if (error) {
+            console.error("PageEditor: Error creating page:", error);
+            throw error;
+          }
+
+          console.log("PageEditor: Create successful:", newPage);
+          return newPage;
+        }
+      } catch (error) {
+        console.error("PageEditor: Error in mutation:", error);
+        throw error;
       }
     },
     onSuccess: (data) => {
+      console.log("PageEditor: Mutation success:", data);
       toast({
         title: "Success",
         description: `Page ${id ? "updated" : "created"} successfully`,
@@ -121,6 +166,7 @@ export function PageEditor() {
       }
     },
     onError: (error) => {
+      console.error("PageEditor: Mutation error:", error);
       toast({
         title: "Error",
         description: (error as Error).message,
@@ -131,12 +177,20 @@ export function PageEditor() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canvas) return;
+    console.log("PageEditor: Handle submit called");
+    console.log("PageEditor: Current canvas state:", canvas);
+    
+    if (!canvas) {
+      console.error("PageEditor: No canvas available");
+      return;
+    }
 
     const content: PageContent = {
       template: selectedTemplate,
       canvasData: canvas.toJSON() as Record<string, any>,
     };
+
+    console.log("PageEditor: Submitting content:", content);
 
     mutation.mutate({
       title,
@@ -146,6 +200,7 @@ export function PageEditor() {
   };
 
   if (isLoading) {
+    console.log("PageEditor: Loading state");
     return <div>Loading...</div>;
   }
 
