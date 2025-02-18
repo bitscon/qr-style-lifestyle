@@ -66,11 +66,14 @@ export function PageEditor() {
 
         console.log("PageEditor: Transformed pageData:", pageData);
 
+        // Safely access the content object
+        const contentObj = typeof pageData.content === 'object' ? pageData.content : {};
+        
         const transformedPage = {
           ...pageData,
           content: {
-            template: pageData.content?.template || "blank",
-            canvasData: pageData.content?.canvasData || {},
+            template: (contentObj as any)?.template || "blank",
+            canvasData: (contentObj as any)?.canvasData || {},
           },
         } as Page;
 

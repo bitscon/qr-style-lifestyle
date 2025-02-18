@@ -55,6 +55,7 @@ import {
 
 interface CanvasEditorProps {
   onCanvasReady: (canvas: Canvas) => void;
+  initialData?: Record<string, any>;
 }
 
 const fontFamilies = [
@@ -84,7 +85,7 @@ const shapes = [
   { name: 'Arrow Right', icon: ArrowRight }
 ];
 
-export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
+export function CanvasEditor({ onCanvasReady, initialData }: CanvasEditorProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [canvas, setCanvas] = useState<Canvas | null>(null);
   const [selectedObject, setSelectedObject] = useState<FabricText | null>(null);
@@ -106,6 +107,13 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
       height: 600,
       backgroundColor: '#ffffff',
     });
+
+    // Load initial data if available
+    if (initialData) {
+      fabricCanvas.loadFromJSON(initialData, () => {
+        fabricCanvas.renderAll();
+      });
+    }
 
     fabricCanvas.on('mouse:dblclick', (options) => {
       if (options.target && options.target instanceof FabricText) {
@@ -142,7 +150,7 @@ export function CanvasEditor({ onCanvasReady }: CanvasEditorProps) {
     return () => {
       fabricCanvas.dispose();
     };
-  }, [onCanvasReady]);
+  }, [onCanvasReady, initialData]);
 
   const saveState = (fabricCanvas: Canvas) => {
     const json = JSON.stringify(fabricCanvas.toJSON());
