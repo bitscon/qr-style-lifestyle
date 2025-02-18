@@ -30,17 +30,22 @@ export function usePageQuery(id: string | undefined) {
           return null;
         }
 
+        // Type guard to check if content is a record/object
+        const isContentObject = (content: Json): content is { [key: string]: Json } => {
+          return typeof content === 'object' && content !== null && !Array.isArray(content);
+        };
+
         // Ensure content is properly typed and transformed
         const content = data.content as Json;
         
         const transformedPage: Page = {
           ...data,
           content: {
-            template: typeof content === 'object' && content !== null 
-              ? (content.template as string) || "blank"
+            template: isContentObject(content) && typeof content.template === 'string' 
+              ? content.template 
               : "blank",
-            canvasData: typeof content === 'object' && content !== null 
-              ? content.canvasData || null
+            canvasData: isContentObject(content) && content.canvasData 
+              ? content.canvasData 
               : null,
           },
         };
