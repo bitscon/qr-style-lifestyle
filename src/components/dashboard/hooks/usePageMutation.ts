@@ -1,9 +1,10 @@
 
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { PageContent } from "../types";
+import { Json } from "@/integrations/supabase/types";
 
 export function usePageMutation(id: string | undefined, user: any) {
   const navigate = useNavigate();
@@ -18,9 +19,15 @@ export function usePageMutation(id: string | undefined, user: any) {
       console.log("PageMutation: Starting save mutation with data:", data);
       
       try {
+        // Transform PageContent to Json type
+        const contentJson: Json = {
+          template: data.content.template,
+          canvasData: data.content.canvasData
+        };
+
         const supabaseData = {
           title: data.title,
-          content: data.content,
+          content: contentJson,
           is_published: data.is_published,
           user_id: user?.id,
         };
@@ -47,7 +54,7 @@ export function usePageMutation(id: string | undefined, user: any) {
           console.log("PageMutation: Creating new page");
           const { data: newPage, error } = await supabase
             .from("pages")
-            .insert([supabaseData])
+            .insert(supabaseData)
             .select()
             .single();
 
