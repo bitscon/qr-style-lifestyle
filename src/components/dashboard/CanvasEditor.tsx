@@ -30,7 +30,8 @@ import {
   ArrowUp,
   ArrowDown,
   ArrowLeft,
-  ArrowRight
+  ArrowRight,
+  Trash2
 } from "lucide-react";
 import {
   Select,
@@ -113,7 +114,20 @@ export function CanvasEditor({ onCanvasReady, initialData }: CanvasEditorProps) 
       backgroundColor: '#ffffff',
     });
 
-    console.log("CanvasEditor: Canvas created");
+    // Add keyboard event listener for delete
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        const activeObject = fabricCanvas.getActiveObject();
+        if (activeObject) {
+          fabricCanvas.remove(activeObject);
+          fabricCanvas.renderAll();
+          saveState(fabricCanvas);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    console.log("CanvasEditor: Added keyboard delete listener");
 
     if (initialData) {
       console.log("CanvasEditor: Loading initial data into canvas:", initialData);
@@ -162,7 +176,8 @@ export function CanvasEditor({ onCanvasReady, initialData }: CanvasEditorProps) 
     onCanvasReady(fabricCanvas);
 
     return () => {
-      console.log("CanvasEditor: Disposing canvas");
+      console.log("CanvasEditor: Disposing canvas and cleaning up listeners");
+      window.removeEventListener('keydown', handleKeyDown);
       fabricCanvas.dispose();
     };
   }, [onCanvasReady, initialData]);
@@ -517,6 +532,17 @@ export function CanvasEditor({ onCanvasReady, initialData }: CanvasEditorProps) 
     }
   };
 
+  const handleDeleteSelected = () => {
+    if (!canvas) return;
+    
+    const activeObject = canvas.getActiveObject();
+    if (activeObject) {
+      canvas.remove(activeObject);
+      canvas.renderAll();
+      saveState(canvas);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2 p-2 bg-muted rounded-lg">
@@ -538,6 +564,15 @@ export function CanvasEditor({ onCanvasReady, initialData }: CanvasEditorProps) 
             disabled={!canRedo}
           >
             <Redo2 className="h-4 w-4" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={handleDeleteSelected}
+            disabled={!selectedObject}
+          >
+            <Trash2 className="h-4 w-4 text-destructive" />
           </Button>
         </div>
 
