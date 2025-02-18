@@ -100,7 +100,12 @@ export function CanvasEditor({ onCanvasReady, initialData }: CanvasEditorProps) 
   const currentStateIndexRef = useRef(-1);
 
   useEffect(() => {
-    if (!canvasEl.current) return;
+    console.log("CanvasEditor: Initializing with data:", initialData);
+    
+    if (!canvasEl.current) {
+      console.log("CanvasEditor: Canvas element not ready");
+      return;
+    }
 
     const fabricCanvas = new Canvas(canvasEl.current, {
       width: 800,
@@ -108,10 +113,16 @@ export function CanvasEditor({ onCanvasReady, initialData }: CanvasEditorProps) 
       backgroundColor: '#ffffff',
     });
 
-    if (initialData) {
+    console.log("CanvasEditor: Canvas created, loading initial data");
+
+    if (initialData && Object.keys(initialData).length > 0) {
+      console.log("CanvasEditor: Loading initial data into canvas");
       fabricCanvas.loadFromJSON(initialData, () => {
+        console.log("CanvasEditor: Initial data loaded successfully");
         fabricCanvas.renderAll();
       });
+    } else {
+      console.log("CanvasEditor: No initial data to load");
     }
 
     fabricCanvas.on('mouse:dblclick', (options) => {
@@ -147,6 +158,7 @@ export function CanvasEditor({ onCanvasReady, initialData }: CanvasEditorProps) 
     onCanvasReady(fabricCanvas);
 
     return () => {
+      console.log("CanvasEditor: Disposing canvas");
       fabricCanvas.dispose();
     };
   }, [onCanvasReady, initialData]);
