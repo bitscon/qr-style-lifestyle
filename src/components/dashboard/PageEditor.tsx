@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -42,18 +42,21 @@ export function PageEditor() {
         .single();
 
       if (error) throw error;
-      
-      const pageData = data as unknown as Page;
-      setTitle(pageData.title);
-      setIsPublished(pageData.is_published);
-      if (pageData.content?.template) {
-        setSelectedTemplate(pageData.content.template);
-      }
-      
-      return pageData;
+      return data as Page;
     },
     enabled: !!id,
   });
+
+  // Update local state when page data is loaded
+  useEffect(() => {
+    if (page) {
+      setTitle(page.title);
+      setIsPublished(page.is_published || false);
+      if (page.content?.template) {
+        setSelectedTemplate(page.content.template);
+      }
+    }
+  }, [page]);
 
   const mutation = useMutation({
     mutationFn: async (data: {
@@ -74,6 +77,7 @@ export function PageEditor() {
           .update(supabaseData)
           .eq("id", id);
         if (error) throw error;
+        return { id }; // Return the existing page id
       } else {
         const { data: newPage, error } = await supabase
           .from("pages")
@@ -143,6 +147,7 @@ export function PageEditor() {
               activeTab={activeTab}
               setActiveTab={setActiveTab}
               onCanvasReady={setCanvas}
+              initialCanvasData={page?.content?.canvasData}
             />
           </CardContent>
           <CardFooter className="flex justify-end space-x-4">
