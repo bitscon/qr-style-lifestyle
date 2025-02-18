@@ -42,7 +42,30 @@ export function PageEditor() {
         .single();
 
       if (error) throw error;
-      return data as Page;
+      
+      // Convert the raw data to our Page type
+      const pageData = data as unknown as {
+        content: Json;
+        created_at: string;
+        id: string;
+        is_published: boolean;
+        qr_code_url: string | null;
+        template_id: string | null;
+        title: string;
+        updated_at: string;
+        user_id: string;
+      };
+
+      // Transform the content to match PageContent type
+      const content = pageData.content as { template: string; canvasData: Record<string, any> };
+      
+      return {
+        ...pageData,
+        content: {
+          template: content?.template || "blank",
+          canvasData: content?.canvasData || {},
+        },
+      } as Page;
     },
     enabled: !!id,
   });
