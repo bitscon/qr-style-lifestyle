@@ -121,8 +121,6 @@ export function CanvasEditor({ onCanvasReady, initialData }: CanvasEditorProps) 
         fabricCanvas.loadFromJSON(initialData, () => {
           console.log("CanvasEditor: Initial data loaded successfully");
           fabricCanvas.renderAll();
-        }, (err, obj) => {
-          console.error("CanvasEditor: Error loading object:", err, obj);
         });
       } catch (error) {
         console.error("CanvasEditor: Error loading initial data:", error);
