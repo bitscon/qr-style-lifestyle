@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Canvas, Text as FabricText, Rect, Circle, ModifiedEvent, TPointerEvent, Image, Triangle, Path, Polygon } from "fabric";
+import { Canvas, Text as FabricText, Rect, Circle, ModifiedEvent, TPointerEvent, Image, Triangle, Path } from "fabric";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
@@ -86,7 +86,7 @@ const shapes = [
 ];
 
 export function CanvasEditor({ onCanvasReady, initialData }: CanvasEditorProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const canvasEl = useRef<HTMLCanvasElement>(null);
   const [canvas, setCanvas] = useState<Canvas | null>(null);
   const [selectedObject, setSelectedObject] = useState<FabricText | null>(null);
   const [fontSize, setFontSize] = useState("16");
@@ -100,15 +100,14 @@ export function CanvasEditor({ onCanvasReady, initialData }: CanvasEditorProps) 
   const currentStateIndexRef = useRef(-1);
 
   useEffect(() => {
-    if (!canvasRef.current) return;
+    if (!canvasEl.current) return;
 
-    const fabricCanvas = new Canvas(canvasRef.current, {
+    const fabricCanvas = new Canvas(canvasEl.current, {
       width: 800,
       height: 600,
       backgroundColor: '#ffffff',
     });
 
-    // Load initial data if available
     if (initialData) {
       fabricCanvas.loadFromJSON(initialData, () => {
         fabricCanvas.renderAll();
@@ -699,7 +698,7 @@ export function CanvasEditor({ onCanvasReady, initialData }: CanvasEditorProps) 
       </div>
 
       <div className="border rounded-lg overflow-hidden bg-white">
-        <canvas ref={canvasRef} />
+        <canvas ref={canvasEl} />
       </div>
     </div>
   );
