@@ -3,7 +3,7 @@ import { Json } from "@/integrations/supabase/types";
 
 export interface PageContent {
   template: string;
-  canvasData: Record<string, any>;
+  canvasData: Record<string, any> | null;
 }
 
 export interface Page {

@@ -12,7 +12,7 @@ interface PageEditorTabsProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   onCanvasReady: (canvas: Canvas) => void;
-  initialCanvasData?: Record<string, any>;
+  initialCanvasData: Record<string, any> | null;
 }
 
 export function PageEditorTabs({
@@ -21,6 +21,8 @@ export function PageEditorTabs({
   onCanvasReady,
   initialCanvasData,
 }: PageEditorTabsProps) {
+  console.log("PageEditorTabs: Received initialCanvasData:", initialCanvasData);
+  
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab}>
       <TabsList>
