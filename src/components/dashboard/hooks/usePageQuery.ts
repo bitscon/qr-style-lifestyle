@@ -35,6 +35,11 @@ export function usePageQuery(id: string | undefined) {
           return typeof content === 'object' && content !== null && !Array.isArray(content);
         };
 
+        // Type guard to check if a value is a Record<string, any>
+        const isRecordObject = (value: Json): value is Record<string, any> => {
+          return typeof value === 'object' && value !== null && !Array.isArray(value);
+        };
+
         // Ensure content is properly typed and transformed
         const content = data.content as Json;
         
@@ -44,7 +49,7 @@ export function usePageQuery(id: string | undefined) {
             template: isContentObject(content) && typeof content.template === 'string' 
               ? content.template 
               : "blank",
-            canvasData: isContentObject(content) && content.canvasData 
+            canvasData: isContentObject(content) && content.canvasData && isRecordObject(content.canvasData)
               ? content.canvasData 
               : null,
           },
