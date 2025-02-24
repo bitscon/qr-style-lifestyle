@@ -1,7 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
-import { QRCode } from "https://deno.land/x/qrcode@v2.0.0/mod.ts";
+import qrcode from "npm:qrcode@1.5.3"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -17,7 +17,7 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     console.log("Handling OPTIONS preflight request");
     return new Response(null, {
-      status: 204, // No content for OPTIONS
+      status: 204,
       headers: corsHeaders
     });
   }
@@ -70,19 +70,39 @@ serve(async (req) => {
     
     console.log('Generating QR code for URL:', userPublishedPageUrl);
 
-    // Create QR code
-    const qr = new QRCode();
-    const pngData = await qr.generatePng(userPublishedPageUrl);
+    // Generate QR code as PNG data URL
+    const qrDataUrl = await qrcode.toDataURL(userPublishedPageUrl, {
+      width: 400,
+      margin: 2,
+      color: {
+        dark: '#000000',
+        light: '#ffffff'
+      }
+    });
 
-    // Convert PNG data to base64
-    const base64Data = btoa(String.fromCharCode(...new Uint8Array(pngData)));
+    // Convert data URL to binary data
+    const base64Data = qrDataUrl.split(',')[1];
+    const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
     const fileName = `qr-codes/user-${profile.id}.png`;
+
+    // First, create the qr-codes bucket if it doesn't exist
+    const { error: bucketError } = await supabase
+      .storage
+      .createBucket('qr-codes', {
+        public: true,
+        fileSizeLimit: 1024 * 1024, // 1MB
+      });
+
+    if (bucketError && !bucketError.message.includes('already exists')) {
+      console.error('Bucket creation error:', bucketError);
+      throw bucketError;
+    }
 
     // Upload to storage
     const { error: uploadError } = await supabase
       .storage
-      .from('public')
-      .upload(fileName, pngData, {
+      .from('qr-codes')
+      .upload(fileName, binaryData, {
         contentType: 'image/png',
         upsert: true,
       });
@@ -95,7 +115,7 @@ serve(async (req) => {
     // Get public URL
     const { data: publicUrl } = supabase
       .storage
-      .from('public')
+      .from('qr-codes')
       .getPublicUrl(fileName);
 
     // Update user profile
